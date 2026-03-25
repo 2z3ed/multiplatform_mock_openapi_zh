@@ -8,6 +8,8 @@ RUN pip install --no-cache-dir \
     sqlalchemy \
     "psycopg[binary]" \
     pydantic \
-    pydantic-settings
+    pydantic-settings \
+    httpx \
+    python-dotenv
 
 ENV PYTHONUNBUFFERED=1

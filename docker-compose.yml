@@ -1,0 +1,159 @@
+services:
+  postgres:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_DB: omni_csx
+      POSTGRES_USER: omni
+      POSTGRES_PASSWORD: omni
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U omni -d omni_csx"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  redis:
+    image: redis:7-alpine
+    ports:
+      - "6379:6379"
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  api-gateway:
+    build:
+      context: .
+      dockerfile: infra/docker/python-service.Dockerfile
+    working_dir: /workspace/apps/api-gateway
+    env_file:
+      - .env.example
+    environment:
+      PYTHONPATH: /workspace/apps/api-gateway:/workspace/packages/shared-config:/workspace/packages/shared-db:/workspace/packages/domain-models:/workspace/packages/provider-sdk
+    command: ["python", "-m", "uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000"]
+    volumes:
+      - .:/workspace
+    ports:
+      - "8000:8000"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+
+  domain-service:
+    build:
+      context: .
+      dockerfile: infra/docker/python-service.Dockerfile
+    working_dir: /workspace/apps/domain-service
+    env_file:
+      - .env.example
+    environment:
+      PYTHONPATH: /workspace/apps/domain-service:/workspace/packages/shared-config:/workspace/packages/shared-db:/workspace/packages/domain-models:/workspace/packages/provider-sdk
+    command: ["python", "-m", "uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8001"]
+    volumes:
+      - .:/workspace
+    ports:
+      - "8001:8001"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+
+  ai-orchestrator:
+    build:
+      context: .
+      dockerfile: infra/docker/python-service.Dockerfile
+    working_dir: /workspace/apps/ai-orchestrator
+    env_file:
+      - .env.example
+    environment:
+      PYTHONPATH: /workspace/apps/ai-orchestrator:/workspace/packages/shared-config:/workspace/packages/shared-db:/workspace/packages/domain-models:/workspace/packages/provider-sdk
+    command: ["python", "-m", "uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8002"]
+    volumes:
+      - .:/workspace
+    ports:
+      - "8002:8002"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+
+  knowledge-service:
+    build:
+      context: .
+      dockerfile: infra/docker/python-service.Dockerfile
+    working_dir: /workspace/apps/knowledge-service
+    env_file:
+      - .env.example
+    environment:
+      PYTHONPATH: /workspace/apps/knowledge-service:/workspace/packages/shared-config:/workspace/packages/shared-db:/workspace/packages/domain-models:/workspace/packages/provider-sdk
+    command: ["python", "-m", "uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8003"]
+    volumes:
+      - .:/workspace
+    ports:
+      - "8003:8003"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+
+  mock-platform-server:
+    build:
+      context: .
+      dockerfile: infra/docker/python-service.Dockerfile
+    working_dir: /workspace/apps/mock-platform-server
+    env_file:
+      - .env.example
+    environment:
+      PYTHONPATH: /workspace/apps/mock-platform-server:/workspace/packages/shared-config:/workspace/packages/shared-db:/workspace/packages/domain-models:/workspace/packages/provider-sdk
+    command: ["python", "-m", "uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8004"]
+    volumes:
+      - .:/workspace
+    ports:
+      - "8004:8004"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+
+  agent-console:
+    build:
+      context: .
+      dockerfile: infra/docker/nextjs.Dockerfile
+    working_dir: /workspace/apps/agent-console
+    environment:
+      NEXT_PUBLIC_API_URL: http://localhost:8000
+    command: ["npm", "run", "dev"]
+    volumes:
+      - .:/workspace
+    ports:
+      - "3100:3000"
+    depends_on:
+      - api-gateway
+
+  admin-console:
+    build:
+      context: .
+      dockerfile: infra/docker/nextjs.Dockerfile
+    working_dir: /workspace/apps/admin-console
+    environment:
+      NEXT_PUBLIC_API_URL: http://localhost:8000
+    command: ["npm", "run", "dev"]
+    volumes:
+      - .:/workspace
+    ports:
+      - "3101:3000"
+    depends_on:
+      - api-gateway
+
+volumes:
+  postgres_data:

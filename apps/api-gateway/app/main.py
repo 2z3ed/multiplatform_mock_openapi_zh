@@ -18,10 +18,10 @@ app = FastAPI(
 )
 
 BACKEND_SERVICES = {
-    "domain-service": "http://localhost:8001",
-    "ai-orchestrator": "http://localhost:8002",
-    "knowledge-service": "http://localhost:8003",
-    "mock-platform-server": "http://localhost:8004",
+    "domain-service": "http://domain-service:8001",
+    "ai-orchestrator": "http://ai-orchestrator:8002",
+    "knowledge-service": "http://knowledge-service:8003",
+    "mock-platform-server": "http://mock-platform-server:8004",
 }
 
 
@@ -48,7 +48,7 @@ def health() -> dict[str, str]:
     return {"status": "ok", "service": "api-gateway"}
 
 
-@app.api_route("/{service}/{path:path}", methods=["GET", "POST", "PUT", "DELETE"])
+@app.api_route("/gateway/{service}/{path:path}", methods=["GET", "POST", "PUT", "DELETE"])
 async def proxy(service: str, path: str, request: Request):
     if service not in BACKEND_SERVICES:
         return JSONResponse(
@@ -188,5 +188,15 @@ async def search_knowledge(request: Request):
         response = await client.post(
             f"{BACKEND_SERVICES['knowledge-service']}/api/kb/search",
             json=body
+        )
+    return JSONResponse(content=response.json(), status_code=response.status_code)
+
+
+@app.get("/api/audit-logs")
+async def get_audit_logs(request: Request):
+    async with httpx.AsyncClient() as client:
+        response = await client.get(
+            f"{BACKEND_SERVICES['domain-service']}/api/audit-logs",
+            params=request.query_params
         )
     return JSONResponse(content=response.json(), status_code=response.status_code)
