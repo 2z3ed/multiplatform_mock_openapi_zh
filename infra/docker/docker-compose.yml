@@ -125,5 +125,35 @@ services:
       redis:
         condition: service_healthy
 
+  agent-console:
+    build:
+      context: ../..
+      dockerfile: infra/docker/nextjs.Dockerfile
+    working_dir: /workspace/apps/agent-console
+    environment:
+      NEXT_PUBLIC_API_URL: http://localhost:8000
+    command: ["npm", "run", "dev"]
+    volumes:
+      - ../..:/workspace
+    ports:
+      - "3100:3000"
+    depends_on:
+      - api-gateway
+
+  admin-console:
+    build:
+      context: ../..
+      dockerfile: infra/docker/nextjs.Dockerfile
+    working_dir: /workspace/apps/admin-console
+    environment:
+      NEXT_PUBLIC_API_URL: http://localhost:8000
+    command: ["npm", "run", "dev"]
+    volumes:
+      - ../..:/workspace
+    ports:
+      - "3101:3000"
+    depends_on:
+      - api-gateway
+
 volumes:
   postgres_data:
