@@ -4,8 +4,9 @@ RUN npm install -g pnpm
 
 WORKDIR /workspace
 
-COPY apps/*/package.json ./
 COPY pnpm-workspace.yaml ./
+COPY apps/agent-console/package.json ./apps/agent-console/
+COPY apps/admin-console/package.json ./apps/admin-console/
 
 RUN pnpm install
 

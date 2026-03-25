@@ -4,7 +4,7 @@ import httpx
 
 
 async def get_order_tool(order_id: str, platform: str = "jd") -> dict:
-    domain_service_url = "http://localhost:8001"
+    domain_service_url = "http://domain-service:8001"
     try:
         response = httpx.get(f"{domain_service_url}/api/orders/{platform}/{order_id}", timeout=10)
         response.raise_for_status()

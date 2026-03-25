@@ -132,9 +132,7 @@ services:
     working_dir: /workspace/apps/agent-console
     environment:
       NEXT_PUBLIC_API_URL: http://localhost:8000
-    command: ["npm", "run", "dev"]
-    volumes:
-      - .:/workspace
+    command: ["pnpm", "exec", "next", "dev", "-p", "3000"]
     ports:
       - "3100:3000"
     depends_on:
@@ -147,9 +145,7 @@ services:
     working_dir: /workspace/apps/admin-console
     environment:
       NEXT_PUBLIC_API_URL: http://localhost:8000
-    command: ["npm", "run", "dev"]
-    volumes:
-      - .:/workspace
+    command: ["pnpm", "exec", "next", "dev", "-p", "3000"]
     ports:
       - "3101:3000"
     depends_on:
