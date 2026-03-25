@@ -1,0 +1,260 @@
+V1 PROJECT CONSTRAINTS
+
+1. PROJECT NAME
+
+Omni-CSX V1
+
+2. PRODUCT POSITIONING
+
+V1 is a multi-platform customer service middle platform foundation.
+It is NOT a full commercial platform.
+It is NOT a marketing platform.
+It is NOT a quality inspection system.
+It is NOT a deep ERP-integrated platform.
+
+3. REQUIRED SERVICES
+
+The repository must contain these services:
+- api-gateway
+- domain-service
+- ai-orchestrator
+- knowledge-service
+- mock-platform-server
+- agent-console
+- admin-console
+
+4. REQUIRED SHARED PACKAGES
+
+The repository must contain these shared packages:
+- domain-models
+- provider-sdk
+- shared-utils
+- shared-config
+- shared-db
+
+5. REQUIRED PROVIDERS
+
+The repository must contain these provider folders:
+- providers/jd/mock
+- providers/jd/real
+- providers/douyin_shop/mock
+- providers/douyin_shop/real
+- providers/wecom_kf/mock
+- providers/wecom_kf/real
+
+V1 only implements mock behavior.
+Real providers remain placeholder skeletons.
+
+6. REQUIRED DATABASE TABLES
+
+The minimum required tables are:
+- platform_account
+- customer
+- conversation
+- message
+- order_snapshot
+- shipment_snapshot
+- after_sale_case
+- kb_document
+- kb_chunk
+- ai_suggestion
+- audit_log
+
+No V2/V3 tables are required in V1.
+
+7. REQUIRED PLATFORM MOCK APIS
+
+JD mock APIs:
+- POST /mock/jd/oauth/token
+- GET /mock/jd/orders/{orderId}
+- GET /mock/jd/shipments/{orderId}
+- GET /mock/jd/after-sales/{afterSaleId}
+
+Douyin Shop mock APIs:
+- POST /mock/douyin-shop/auth/token
+- GET /mock/douyin-shop/orders/{orderId}
+- GET /mock/douyin-shop/refunds/{afterSaleId}
+- GET /mock/douyin-shop/products/{productId}
+
+WeCom KF mock APIs:
+- POST /mock/wecom-kf/token
+- POST /mock/wecom-kf/messages/sync
+- POST /mock/wecom-kf/service-state/trans
+- POST /mock/wecom-kf/event-message/send
+
+8. REQUIRED UNIFIED APIS
+
+Conversation APIs:
+- GET /api/conversations
+- GET /api/conversations/{id}
+- GET /api/conversations/{id}/messages
+- POST /api/conversations/{id}/assign
+- POST /api/conversations/{id}/handoff
+
+Context APIs:
+- GET /api/orders/{platform}/{orderId}
+- GET /api/shipments/{platform}/{orderId}
+- GET /api/after-sales/{platform}/{afterSaleId}
+
+AI API:
+- POST /api/ai/suggest-reply
+
+Knowledge APIs:
+- POST /api/kb/documents
+- POST /api/kb/reindex
+- GET /api/kb/search
+
+Audit API:
+- GET /api/audit-logs
+
+9. REQUIRED AI GRAPH
+
+There must be exactly one LangGraph workflow:
+- suggest_reply_graph
+
+Required graph nodes:
+- load_context
+- classify_intent
+- route_to_tool_or_kb
+- build_prompt_context
+- generate_suggestion
+- human_review_interrupt
+
+10. REQUIRED AI TOOLS
+
+The AI layer must define these tools:
+- get_order
+- get_shipment
+- get_after_sale
+- search_kb
+
+11. REQUIRED FRONTEND PAGES
+
+Agent console must have:
+- login page
+- conversation list page
+- conversation detail page
+
+Conversation detail page must show:
+- conversation header
+- message stream
+- reply composer
+- order panel
+- shipment panel
+- after-sale panel
+- suggestion panel
+
+Admin console must have:
+- platform configuration page
+- knowledge page
+- audit page
+
+12. REQUIRED IMPLEMENTATION ORDER
+
+Implementation must follow this order:
+
+Phase 1:
+- repo structure
+- docker compose
+- shared config
+- DB connection
+- migrations
+
+Phase 2:
+- mock-platform-server
+- provider-sdk
+- provider mock adapters
+
+Phase 3:
+- domain-service
+- unified order / shipment / after-sale APIs
+- conversation and message APIs
+
+Phase 4:
+- knowledge-service
+
+Phase 5:
+- ai-orchestrator with LangChain + LangGraph
+
+Phase 6:
+- agent-console
+
+Phase 7:
+- admin-console
+
+Phase 8:
+- integration tests
+- audit validation
+- provider mode validation
+
+13. REQUIRED ENGINEERING STYLE
+
+- keep services modular
+- keep provider logic isolated
+- keep AI logic isolated
+- keep frontend thin
+- prefer explicit code over clever abstractions
+- build only what V1 requires
+- leave future features as placeholders only if needed
+
+14. REQUIRED TEST COVERAGE
+
+Service/API tests must exist for:
+- mock platform routes
+- provider mapping
+- domain services
+- knowledge retrieval
+- intent classification
+- suggestion graph
+- suggest reply API
+- provider mode switch
+- end-to-end conversation flow
+
+15. REQUIRED AUDIT EVENTS
+
+Audit logs must exist for:
+- platform config change
+- provider mode switch
+- document upload
+- reindex
+- AI suggestion generation
+- message sending
+- conversation handoff
+- conversation assignment
+
+16. REQUIRED AI BEHAVIOR CONSTRAINTS
+
+AI must:
+- use tools for order / shipment / after-sale answers
+- use retrieval for FAQ / SOP answers
+- return structured output
+- never auto-send
+- always allow human review
+
+17. REQUIRED NON-GOALS
+
+The following are explicitly forbidden in V1:
+- recommendation engine
+- customer profiling
+- marketing task generation
+- campaign management
+- quality inspection rules engine
+- risk center
+- ERP integration center
+- VOC analytics
+- training center
+- Deep Agents
+- auto-pilot customer service
+
+18. REQUIRED DEFINITION OF DONE
+
+V1 is complete only when:
+- all required services boot successfully
+- all required DB tables exist
+- all mock APIs return valid responses
+- all unified APIs work
+- knowledge upload and search work
+- AI suggested reply works end-to-end
+- human can confirm and send
+- audit logs are recorded and visible
+- required tests pass

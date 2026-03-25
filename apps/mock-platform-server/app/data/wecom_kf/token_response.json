@@ -1,0 +1,7 @@
+{
+  "access_token": "mock_wecom_access_token_ghi321",
+  "expires_in": 7200,
+  "refresh_token": "mock_wecom_refresh_token_jkl654",
+  "corp_id": "mock_corp_123",
+  "agent_id": "mock_agent_456"
+}

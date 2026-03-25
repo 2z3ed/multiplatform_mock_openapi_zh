@@ -1,0 +1,747 @@
+V1 TASK BREAKDOWN
+
+PURPOSE
+
+This file breaks V1 into concrete execution tasks.
+The goal is to make the project directly executable by Codex / OpenCode with minimal ambiguity.
+
+This file assumes the existence of:
+- DEVELOPMENT_RULES.txt
+- PROJECT_CONSTRAINTS.txt
+- CODEX_TASK_PROMPT.txt
+- FIRST_EXECUTION_STEPS.txt
+
+If there is any conflict, follow the rule files first.
+
+==================================================
+TASK GROUP 1. REPOSITORY BOOTSTRAP
+==================================================
+
+Task 1.1
+Title:
+Create repository structure
+
+Goal:
+Create all required folders and placeholder files for V1.
+
+Required output:
+- apps/
+- packages/
+- providers/
+- infra/
+- docs/
+- tests/
+- root config files
+
+Done when:
+- the repository tree exists
+- placeholder files exist
+- the project can be opened as a valid monorepo/workspace
+
+Task 1.2
+Title:
+Create root configuration files
+
+Goal:
+Create minimum project-level configuration.
+
+Required files:
+- README.md
+- .gitignore
+- .env.example
+- pyproject.toml
+- package.json
+- pnpm-workspace.yaml
+- Makefile
+
+Done when:
+- Python and frontend package managers can detect project structure
+- environment variables template exists
+
+==================================================
+TASK GROUP 2. LOCAL DEVELOPMENT ENVIRONMENT
+==================================================
+
+Task 2.1
+Title:
+Create Docker Compose for local development
+
+Goal:
+Run PostgreSQL, Redis, and core backend services locally.
+
+Required output:
+- infra/docker/docker-compose.yml
+
+Minimum services:
+- postgres
+- redis
+- api-gateway
+- domain-service
+- ai-orchestrator
+- knowledge-service
+- mock-platform-server
+
+Done when:
+- docker compose up works
+- postgres and redis are reachable
+
+Task 2.2
+Title:
+Create shared config and DB bootstrap
+
+Goal:
+Provide reusable DB session and settings modules.
+
+Required files:
+- packages/shared-config/settings.py
+- packages/shared-config/db_settings.py
+- packages/shared-db/base.py
+- packages/shared-db/session.py
+- packages/shared-db/mixins.py
+
+Done when:
+- backend services can import settings and db session
+- DB connection can initialize successfully
+
+==================================================
+TASK GROUP 3. DATABASE FOUNDATION
+==================================================
+
+Task 3.1
+Title:
+Create SQL migration files
+
+Goal:
+Define V1 database schema.
+
+Required migration files:
+- 0001_create_platform_account.sql
+- 0002_create_customer.sql
+- 0003_create_conversation.sql
+- 0004_create_message.sql
+- 0005_create_order_snapshot.sql
+- 0006_create_shipment_snapshot.sql
+- 0007_create_after_sale_case.sql
+- 0008_create_kb_document.sql
+- 0009_create_kb_chunk.sql
+- 0010_create_ai_suggestion.sql
+- 0011_create_audit_log.sql
+
+Done when:
+- all migration files exist
+- schema is sufficient for V1
+
+Task 3.2
+Title:
+Create ORM models
+
+Goal:
+Mirror database schema in Python models.
+
+Required model files:
+- platform_account model
+- customer model
+- conversation model
+- message model
+- order_snapshot model
+- shipment_snapshot model
+- after_sale_case model
+- kb_document model
+- kb_chunk model
+- ai_suggestion model
+- audit_log model
+
+Done when:
+- ORM models load successfully
+- tables can be created or validated
+
+==================================================
+TASK GROUP 4. MOCK PLATFORM SERVER
+==================================================
+
+Task 4.1
+Title:
+Implement JD mock routes
+
+Goal:
+Provide minimal JD simulation.
+
+Required routes:
+- POST /mock/jd/oauth/token
+- GET /mock/jd/orders/{orderId}
+- GET /mock/jd/shipments/{orderId}
+- GET /mock/jd/after-sales/{afterSaleId}
+
+Required files:
+- apps/mock-platform-server/app/api/routes_jd.py
+- apps/mock-platform-server/app/schemas/jd.py
+- apps/mock-platform-server/app/data/jd/*.json
+
+Done when:
+- routes return valid mock JSON
+- tests pass
+
+Task 4.2
+Title:
+Implement Douyin Shop mock routes
+
+Goal:
+Provide minimal Douyin Shop simulation.
+
+Required routes:
+- POST /mock/douyin-shop/auth/token
+- GET /mock/douyin-shop/orders/{orderId}
+- GET /mock/douyin-shop/refunds/{afterSaleId}
+- GET /mock/douyin-shop/products/{productId}
+
+Required files:
+- apps/mock-platform-server/app/api/routes_douyin_shop.py
+- apps/mock-platform-server/app/schemas/douyin_shop.py
+- apps/mock-platform-server/app/data/douyin_shop/*.json
+
+Done when:
+- routes return valid mock JSON
+- tests pass
+
+Task 4.3
+Title:
+Implement WeCom KF mock routes
+
+Goal:
+Provide minimal WeCom customer service simulation.
+
+Required routes:
+- POST /mock/wecom-kf/token
+- POST /mock/wecom-kf/messages/sync
+- POST /mock/wecom-kf/service-state/trans
+- POST /mock/wecom-kf/event-message/send
+
+Required files:
+- apps/mock-platform-server/app/api/routes_wecom_kf.py
+- apps/mock-platform-server/app/schemas/wecom_kf.py
+- apps/mock-platform-server/app/data/wecom_kf/*.json
+
+Done when:
+- routes return valid mock JSON
+- tests pass
+
+Task 4.4
+Title:
+Expose mock-platform-server OpenAPI
+
+Goal:
+Ensure mock service provides self-describing API docs.
+
+Done when:
+- OpenAPI docs load in browser
+- route schemas are visible
+
+==================================================
+TASK GROUP 5. PROVIDER SDK AND ADAPTERS
+==================================================
+
+Task 5.1
+Title:
+Create provider-sdk interfaces and unified DTOs
+
+Goal:
+Define the abstraction boundary between platform integrations and business logic.
+
+Required files:
+- packages/provider-sdk/base.py
+- packages/provider-sdk/interfaces/order_provider.py
+- packages/provider-sdk/interfaces/shipment_provider.py
+- packages/provider-sdk/interfaces/after_sale_provider.py
+- packages/provider-sdk/interfaces/message_provider.py
+- packages/provider-sdk/dto/order_dto.py
+- packages/provider-sdk/dto/shipment_dto.py
+- packages/provider-sdk/dto/after_sale_dto.py
+- packages/provider-sdk/dto/message_dto.py
+
+Done when:
+- interfaces are importable
+- DTOs are stable and typed
+
+Task 5.2
+Title:
+Implement JD mock provider adapter
+
+Goal:
+Call JD mock APIs and map them into unified DTOs.
+
+Required files:
+- providers/jd/mock/provider.py
+- providers/jd/mock/mapper.py
+
+Done when:
+- domain-service can request unified JD order/shipment/after-sale data
+
+Task 5.3
+Title:
+Implement Douyin Shop mock provider adapter
+
+Goal:
+Call Douyin Shop mock APIs and map them into unified DTOs.
+
+Required files:
+- providers/douyin_shop/mock/provider.py
+- providers/douyin_shop/mock/mapper.py
+
+Done when:
+- domain-service can request unified Douyin order/refund/product data
+
+Task 5.4
+Title:
+Implement WeCom KF mock provider adapter
+
+Goal:
+Call WeCom KF mock APIs and map them into unified message/session DTOs.
+
+Required files:
+- providers/wecom_kf/mock/provider.py
+- providers/wecom_kf/mock/mapper.py
+
+Done when:
+- conversation/message flows can use unified message DTOs
+
+Task 5.5
+Title:
+Create real provider placeholders
+
+Goal:
+Create empty real provider skeletons for future extension.
+
+Required files:
+- providers/*/real/provider.py
+
+Done when:
+- placeholders exist
+- interfaces match mock providers
+
+==================================================
+TASK GROUP 6. DOMAIN SERVICE
+==================================================
+
+Task 6.1
+Title:
+Implement conversation and message repositories
+
+Goal:
+Support unified conversations and messages.
+
+Required files:
+- conversation_repository.py
+- message_repository.py
+
+Done when:
+- conversations and messages can be queried
+
+Task 6.2
+Title:
+Implement conversation and message services
+
+Goal:
+Support conversation list, detail, assign, handoff.
+
+Required files:
+- conversation_service.py
+- message_service.py
+
+Done when:
+- services expose V1 behavior
+- assignment and handoff work at API level
+
+Task 6.3
+Title:
+Implement order / shipment / after-sale services
+
+Goal:
+Support unified context retrieval through provider adapters.
+
+Required files:
+- order_service.py
+- shipment_service.py
+- after_sale_service.py
+
+Done when:
+- APIs return normalized context objects
+
+Task 6.4
+Title:
+Expose domain-service APIs
+
+Required APIs:
+- GET /api/conversations
+- GET /api/conversations/{id}
+- GET /api/conversations/{id}/messages
+- POST /api/conversations/{id}/assign
+- POST /api/conversations/{id}/handoff
+- GET /api/orders/{platform}/{orderId}
+- GET /api/shipments/{platform}/{orderId}
+- GET /api/after-sales/{platform}/{afterSaleId}
+
+Done when:
+- routes respond correctly
+- OpenAPI is visible
+- API tests pass
+
+==================================================
+TASK GROUP 7. KNOWLEDGE SERVICE
+==================================================
+
+Task 7.1
+Title:
+Implement document ingest and storage
+
+Goal:
+Support uploading documents into kb_document.
+
+Required files:
+- document_ingest.py
+- kb_document_repository.py
+
+Done when:
+- documents can be uploaded and stored
+
+Task 7.2
+Title:
+Implement chunking and embedding pipeline
+
+Goal:
+Split documents into chunks and generate embeddings.
+
+Required files:
+- chunker.py
+- embedder.py
+- kb_chunk_repository.py
+
+Done when:
+- chunks are persisted into kb_chunk
+
+Task 7.3
+Title:
+Implement retriever and knowledge APIs
+
+Required APIs:
+- POST /api/kb/documents
+- POST /api/kb/reindex
+- GET /api/kb/search
+
+Done when:
+- knowledge retrieval returns useful chunk results
+- tests pass
+
+==================================================
+TASK GROUP 8. AI ORCHESTRATOR
+==================================================
+
+Task 8.1
+Title:
+Implement model factory
+
+Goal:
+Provide a single place to initialize chat models.
+
+Required file:
+- chains/model_factory.py
+
+Done when:
+- AI layer can create configured model instances
+
+Task 8.2
+Title:
+Implement intent classification chain
+
+Goal:
+Classify incoming user message into:
+- faq
+- order_query
+- shipment_query
+- after_sale_query
+- unknown
+
+Required file:
+- chains/intent_chain.py
+
+Done when:
+- chain returns deterministic structured intent output
+
+Task 8.3
+Title:
+Implement tool wrappers
+
+Required files:
+- tools/order_tools.py
+- tools/shipment_tools.py
+- tools/after_sale_tools.py
+- tools/kb_tools.py
+
+Done when:
+- graph can call tools through a unified interface
+
+Task 8.4
+Title:
+Implement suggested reply generation chain
+
+Goal:
+Generate structured suggested reply from context.
+
+Required file:
+- chains/suggest_reply_chain.py
+
+Output must include:
+- intent
+- confidence
+- suggested_reply
+- used_tools
+- risk_level
+
+Done when:
+- chain returns structured response
+
+Task 8.5
+Title:
+Implement suggest_reply_graph
+
+Goal:
+Create the only V1 LangGraph workflow.
+
+Required file:
+- graphs/suggest_reply_graph.py
+
+Required nodes:
+- load_context
+- classify_intent
+- route_to_tool_or_kb
+- build_prompt_context
+- generate_suggestion
+- human_review_interrupt
+
+Done when:
+- graph executes end-to-end
+- graph output is structured
+- graph stops for human review instead of auto-send
+
+Task 8.6
+Title:
+Expose AI API
+
+Required API:
+- POST /api/ai/suggest-reply
+
+Done when:
+- frontend can request suggested reply
+- tests pass
+
+==================================================
+TASK GROUP 9. API GATEWAY
+==================================================
+
+Task 9.1
+Title:
+Implement API gateway middleware
+
+Required middleware:
+- auth.py
+- request_id.py
+- logging.py
+
+Done when:
+- request IDs are attached
+- logs are produced
+- gateway starts cleanly
+
+Task 9.2
+Title:
+Expose unified routes through API gateway
+
+Goal:
+Frontend only needs to talk to gateway.
+
+Done when:
+- required unified APIs are accessible via api-gateway
+- gateway OpenAPI is visible
+
+==================================================
+TASK GROUP 10. AGENT CONSOLE
+==================================================
+
+Task 10.1
+Title:
+Create login page
+
+Goal:
+Minimal shell only.
+
+Done when:
+- login page renders
+
+Task 10.2
+Title:
+Create conversation list page
+
+Goal:
+Show conversations from unified API.
+
+Done when:
+- conversations render
+- click-through works
+
+Task 10.3
+Title:
+Create conversation detail page
+
+Goal:
+Show main workbench layout.
+
+Required components:
+- ConversationHeader
+- MessageStream
+- ReplyComposer
+- OrderPanel
+- ShipmentPanel
+- AfterSalePanel
+- SuggestionPanel
+
+Done when:
+- a user can open one conversation and see all panels
+
+Task 10.4
+Title:
+Support edit and send suggested reply
+
+Goal:
+Human reviews AI output, edits if needed, then sends.
+
+Done when:
+- suggested reply can be inserted into composer
+- send action works
+- send action is audited
+
+==================================================
+TASK GROUP 11. ADMIN CONSOLE
+==================================================
+
+Task 11.1
+Title:
+Create platform configuration page
+
+Goal:
+Display platform accounts and allow provider mode switch.
+
+Done when:
+- provider mode can be viewed and changed
+
+Task 11.2
+Title:
+Create knowledge management page
+
+Goal:
+Upload and inspect knowledge documents.
+
+Done when:
+- document upload works from admin console
+
+Task 11.3
+Title:
+Create audit log page
+
+Goal:
+View audit entries.
+
+Done when:
+- audit rows are visible in UI
+
+==================================================
+TASK GROUP 12. AUDIT LOGGING
+==================================================
+
+Task 12.1
+Title:
+Implement audit repository and service
+
+Goal:
+Provide reusable audit recording.
+
+Done when:
+- services can record audit events consistently
+
+Task 12.2
+Title:
+Wire audit logging to all required events
+
+Required events:
+- platform config updated
+- provider mode switched
+- document uploaded
+- knowledge reindexed
+- AI suggestion generated
+- message sent by agent
+- conversation handed off
+- conversation assigned
+
+Done when:
+- all required actions generate audit entries
+
+==================================================
+TASK GROUP 13. INTEGRATION TESTS
+==================================================
+
+Task 13.1
+Title:
+Create end-to-end mock flow test
+
+Goal:
+Test mock platform -> provider -> domain -> AI path.
+
+Done when:
+- one integration test covers the main flow
+
+Task 13.2
+Title:
+Create provider mode switch test
+
+Goal:
+Verify provider mode switching behavior does not break routing.
+
+Done when:
+- switching provider mode is test-covered
+
+Task 13.3
+Title:
+Create conversation to suggestion flow test
+
+Goal:
+Test one conversation from context loading to suggested reply output.
+
+Done when:
+- AI suggestion flow is verified end-to-end
+
+==================================================
+TASK GROUP 14. STOP CONDITION
+==================================================
+
+Stop V1 implementation when all of these are true:
+- all required services boot
+- all required DB tables exist
+- all required mock routes work
+- unified APIs work
+- knowledge upload and search work
+- AI suggested reply works through suggest_reply_graph
+- human can review and send
+- audit logs are visible
+- integration tests pass
+
+Do not start V2 or V3 work after this stop condition.
+
+==================================================
+SIMPLICITY RULE
+==================================================
+
+If you are uncertain:
+- choose the simplest valid implementation
+- keep architecture clean
+- keep AI isolated
+- keep provider logic isolated
+- do not invent extra features
+- do not anticipate V2 unless a placeholder is strictly necessary

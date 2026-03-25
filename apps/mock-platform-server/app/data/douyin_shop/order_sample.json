@@ -1,0 +1,35 @@
+{
+  "orderId": "DY20240315001",
+  "orderStatus": "ORDER_STATUS_PAID",
+  "orderStatusName": "已支付",
+  "createTime": "2024-03-15T11:00:00Z",
+  "payTime": "2024-03-15T11:05:00Z",
+  "totalAmount": 199.00,
+  "freightAmount": 8.00,
+  "discountAmount": 10.00,
+  "paymentAmount": 197.00,
+  "buyerNick": "抖音用户_13900139000",
+  "buyerPhone": "13900139000",
+  "receiverName": "李四",
+  "receiverPhone": "13900139001",
+  "receiverAddress": {
+    "province": "浙江省",
+    "city": "杭州市",
+    "district": "西湖区",
+    "detail": "文一路100号"
+  },
+  "items": [
+    {
+      "productId": "PRD001",
+      "productName": "蓝牙耳机 TWS Pro",
+      "skuId": "SKU_DY001",
+      "skuName": "黑色",
+      "quantity": 2,
+      "price": 99.00,
+      "subTotal": 198.00
+    }
+  ],
+  "shopId": "SHOP123",
+  "shopName": "抖音旗舰店",
+  "raw_json": {}
+}

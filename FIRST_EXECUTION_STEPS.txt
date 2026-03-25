@@ -1,0 +1,458 @@
+V1 FIRST EXECUTION STEPS
+
+PURPOSE
+
+This file defines the first implementation pass for V1.
+The goal of the first pass is NOT to finish the whole product.
+The goal is to get the core backbone running end-to-end with the smallest possible useful scope.
+
+The first pass must achieve:
+- bootable repository structure
+- bootable backend services
+- bootable frontend shells
+- working mock platform APIs
+- working unified domain APIs
+- working AI suggested reply flow
+- working minimal agent console
+- working minimal admin console
+
+Nothing beyond that is required for the first pass.
+
+==================================================
+STEP 0. READ THE RULE FILES FIRST
+==================================================
+
+Before generating any code, read and follow:
+- DEVELOPMENT_RULES.txt
+- PROJECT_CONSTRAINTS.txt
+- CODEX_TASK_PROMPT.txt
+
+If there is any conflict:
+1. DEVELOPMENT_RULES.txt wins
+2. PROJECT_CONSTRAINTS.txt wins next
+3. CODEX_TASK_PROMPT.txt wins next
+4. Any missing detail should be solved in the simplest V1-compatible way
+
+==================================================
+STEP 1. GENERATE THE REPOSITORY SKELETON
+==================================================
+
+Goal:
+Create the repository tree and empty files only.
+
+Required output:
+- create all top-level folders
+- create all service folders
+- create all shared package folders
+- create provider folders
+- create infra folders
+- create docs folders
+- create tests folders
+- create placeholder README files
+- create placeholder main.py / page.tsx / config files
+
+Do not implement business logic yet.
+
+Definition of done for Step 1:
+- repository structure exists
+- empty files exist
+- no business code required yet
+
+==================================================
+STEP 2. CREATE BASE CONFIGURATION AND LOCAL DEV ENVIRONMENT
+==================================================
+
+Goal:
+Make the repository bootable locally.
+
+Required work:
+- create docker-compose.yml
+- add PostgreSQL service
+- add Redis service
+- add backend service containers
+- add env example file
+- add shared config module
+- add shared DB module
+
+Required files:
+- infra/docker/docker-compose.yml
+- .env.example
+- packages/shared-config/settings.py
+- packages/shared-db/base.py
+- packages/shared-db/session.py
+
+Do not build advanced deployment yet.
+
+Definition of done for Step 2:
+- docker compose can start postgres and redis
+- backend services can import config and DB session modules
+- services can boot with placeholder main.py
+
+==================================================
+STEP 3. CREATE DATABASE MIGRATIONS AND DOMAIN MODELS
+==================================================
+
+Goal:
+Create the minimal database structure for V1.
+
+Required tables:
+- platform_account
+- customer
+- conversation
+- message
+- order_snapshot
+- shipment_snapshot
+- after_sale_case
+- kb_document
+- kb_chunk
+- ai_suggestion
+- audit_log
+
+Required work:
+- write migration SQL files
+- write ORM models
+- write base repository helpers if needed
+
+Important:
+Do not add V2 or V3 tables.
+
+Definition of done for Step 3:
+- migrations exist
+- ORM models exist
+- local DB can create all required tables
+
+==================================================
+STEP 4. IMPLEMENT mock-platform-server FIRST
+==================================================
+
+Goal:
+Create the external world simulation before business logic.
+
+Required mock APIs:
+
+JD:
+- POST /mock/jd/oauth/token
+- GET /mock/jd/orders/{orderId}
+- GET /mock/jd/shipments/{orderId}
+- GET /mock/jd/after-sales/{afterSaleId}
+
+Douyin Shop:
+- POST /mock/douyin-shop/auth/token
+- GET /mock/douyin-shop/orders/{orderId}
+- GET /mock/douyin-shop/refunds/{afterSaleId}
+- GET /mock/douyin-shop/products/{productId}
+
+WeCom KF:
+- POST /mock/wecom-kf/token
+- POST /mock/wecom-kf/messages/sync
+- POST /mock/wecom-kf/service-state/trans
+- POST /mock/wecom-kf/event-message/send
+
+Required work:
+- create schemas
+- create static JSON fixtures
+- create route handlers
+- expose OpenAPI
+- add API tests
+
+Important:
+Use static mock data first.
+Do not implement real provider behavior here.
+
+Definition of done for Step 4:
+- all mock routes return valid JSON
+- swagger/openapi works
+- tests for mock endpoints pass
+
+==================================================
+STEP 5. IMPLEMENT provider-sdk AND PROVIDER ADAPTERS
+==================================================
+
+Goal:
+Build the isolation layer between business logic and platform APIs.
+
+Required work:
+- define provider interfaces in provider-sdk
+- define unified DTOs
+- implement JD mock provider
+- implement Douyin Shop mock provider
+- implement WeCom KF mock provider
+- implement mapper.py files for each platform
+- create empty real provider skeletons
+
+Important:
+No service may directly read platform raw JSON outside provider adapters.
+
+Definition of done for Step 5:
+- domain-service can call provider interfaces
+- providers return unified DTOs
+- raw platform payloads remain isolated behind mappers
+
+==================================================
+STEP 6. IMPLEMENT domain-service
+==================================================
+
+Goal:
+Expose unified business APIs.
+
+Required APIs:
+- GET /api/conversations
+- GET /api/conversations/{id}
+- GET /api/conversations/{id}/messages
+- POST /api/conversations/{id}/assign
+- POST /api/conversations/{id}/handoff
+- GET /api/orders/{platform}/{orderId}
+- GET /api/shipments/{platform}/{orderId}
+- GET /api/after-sales/{platform}/{afterSaleId}
+
+Required work:
+- create repositories
+- create services
+- create response schemas
+- map provider DTOs into unified API responses
+- add tests
+
+Important:
+Keep domain-service free of AI logic.
+
+Definition of done for Step 6:
+- unified APIs respond with normalized objects
+- basic conversation and message APIs work
+- assign and handoff endpoints exist
+- tests pass
+
+==================================================
+STEP 7. IMPLEMENT knowledge-service
+==================================================
+
+Goal:
+Support FAQ / SOP / product knowledge ingestion and retrieval.
+
+Required APIs:
+- POST /api/kb/documents
+- POST /api/kb/reindex
+- GET /api/kb/search
+
+Required work:
+- document upload handler
+- chunking
+- embedding generation
+- retrieval logic
+- persistence to kb_document and kb_chunk
+
+Important:
+Keep the implementation minimal and reliable.
+Do not add advanced training features.
+
+Definition of done for Step 7:
+- document upload works
+- reindex works
+- query search returns chunks
+
+==================================================
+STEP 8. IMPLEMENT ai-orchestrator
+==================================================
+
+Goal:
+Create the minimal AI suggestion workflow.
+
+Required components:
+- model_factory.py
+- intent_chain.py
+- suggest_reply_chain.py
+- order_tools.py
+- shipment_tools.py
+- after_sale_tools.py
+- kb_tools.py
+- suggest_reply_graph.py
+
+Required API:
+- POST /api/ai/suggest-reply
+
+Required graph nodes:
+- load_context
+- classify_intent
+- route_to_tool_or_kb
+- build_prompt_context
+- generate_suggestion
+- human_review_interrupt
+
+Required output:
+- intent
+- confidence
+- suggested_reply
+- used_tools
+- risk_level
+
+Important:
+Do not auto-send.
+Do not add recommendation logic.
+Do not add V2/V3 workflows.
+
+Definition of done for Step 8:
+- suggest-reply API works
+- graph executes end-to-end
+- result is structured
+- output is human-review ready
+
+==================================================
+STEP 9. IMPLEMENT api-gateway
+==================================================
+
+Goal:
+Create the unified public backend entry.
+
+Required work:
+- auth middleware
+- request_id middleware
+- logging middleware
+- route forwarding / aggregation for required APIs
+
+Important:
+Keep it thin.
+Do not duplicate business logic here.
+
+Definition of done for Step 9:
+- frontend can call api-gateway only
+- request IDs and logs are attached
+- all required APIs are visible from gateway
+
+==================================================
+STEP 10. IMPLEMENT agent-console MINIMAL UI
+==================================================
+
+Goal:
+Create a usable minimal workbench for agents.
+
+Required pages:
+- /login
+- /conversations
+- /conversations/[id]
+
+Required components:
+- ConversationList
+- ConversationHeader
+- MessageStream
+- ReplyComposer
+- OrderPanel
+- ShipmentPanel
+- AfterSalePanel
+- SuggestionPanel
+
+Important:
+This is not a design exercise.
+The UI can be simple.
+Focus on usability and data flow.
+
+Definition of done for Step 10:
+- agent can open a conversation
+- agent can read messages
+- agent can view order/shipment/after-sale context
+- agent can view suggested reply
+- agent can edit and send the suggested reply
+
+==================================================
+STEP 11. IMPLEMENT admin-console MINIMAL UI
+==================================================
+
+Goal:
+Create the minimum admin backend for V1.
+
+Required pages:
+- /platforms
+- /knowledge
+- /audit
+
+Required components:
+- PlatformAccountForm
+- ProviderModeSwitcher
+- DocumentUpload
+- ChunkPreview
+- AuditLogTable
+
+Definition of done for Step 11:
+- admin can see platform accounts
+- admin can switch provider mode
+- admin can upload docs
+- admin can view audit logs
+
+==================================================
+STEP 12. ADD AUDIT LOGGING
+==================================================
+
+Goal:
+Ensure traceability for all critical actions.
+
+Must log:
+- platform config updated
+- provider mode switched
+- document uploaded
+- knowledge reindexed
+- AI suggestion generated
+- message sent by agent
+- conversation handed off
+- conversation assigned
+
+Important:
+Add audit logging before claiming any feature complete.
+
+Definition of done for Step 12:
+- all required actions create audit_log entries
+- admin console can view those logs
+
+==================================================
+STEP 13. ADD INTEGRATION TESTS
+==================================================
+
+Goal:
+Verify the main V1 flow.
+
+Required integration tests:
+- mock platform route flow
+- provider mapping flow
+- conversation -> context -> suggestion flow
+- provider mode switch flow
+
+Definition of done for Step 13:
+- integration tests pass locally
+
+==================================================
+STEP 14. STOP CONDITION FOR FIRST PASS
+==================================================
+
+Stop after all of the following are true:
+- repository structure is complete
+- all required services boot locally
+- DB tables exist
+- mock APIs work
+- unified APIs work
+- knowledge upload and retrieval work
+- AI suggested reply works
+- human can review and send
+- audit logs work
+- integration tests pass
+
+Do NOT continue to V2 or V3 features after this point.
+
+==================================================
+IMPLEMENTATION NOTES
+==================================================
+
+1. Prefer explicit code over abstraction-heavy code.
+2. Prefer stable service boundaries over clever shortcuts.
+3. Keep all AI logic in ai-orchestrator only.
+4. Keep all platform integration logic in providers only.
+5. Keep all mock logic in mock-platform-server only.
+6. Keep V1 intentionally boring and predictable.
+
+==================================================
+EXECUTION STYLE
+==================================================
+
+When implementing:
+- generate code step by step
+- do not skip layers
+- do not create speculative features
+- do not add recommendation / campaign / risk / ERP logic
+- do not introduce Deep Agents
+- if uncertain, choose the simplest implementation that satisfies V1

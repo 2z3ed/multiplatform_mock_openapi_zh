@@ -1,0 +1,10 @@
+{
+  "msgid": "MSG20240315001",
+  "user_id": "wecom_user_001",
+  "service_state": "SERVING",
+  "service_state_name": "服务中",
+  "from_user": "wecom_user_001",
+  "to_user": "kf_agent_001",
+  "transfer_time": null,
+  "raw_json": {}
+}

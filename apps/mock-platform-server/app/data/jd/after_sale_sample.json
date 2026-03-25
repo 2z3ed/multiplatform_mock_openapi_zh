@@ -1,0 +1,15 @@
+{
+  "afterSaleId": "AS20240320001",
+  "orderId": "JD20240315001",
+  "type": "REFUND",
+  "typeName": "退款",
+  "status": "APPROVED",
+  "statusName": "已通过",
+  "applyTime": "2024-03-20T14:00:00Z",
+  "handleTime": "2024-03-20T16:30:00Z",
+  "applyAmount": 299.00,
+  "approveAmount": 289.00,
+  "reason": "不想要了",
+  "reasonDetail": "订单信息有误，需要取消",
+  "raw_json": {}
+}

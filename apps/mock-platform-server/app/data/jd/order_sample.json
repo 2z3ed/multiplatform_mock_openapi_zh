@@ -1,0 +1,31 @@
+{
+  "orderId": "JD20240315001",
+  "orderStatus": "PAID",
+  "orderStatusName": "已付款",
+  "createTime": "2024-03-15T10:30:00Z",
+  "payTime": "2024-03-15T10:35:00Z",
+  "totalAmount": 299.00,
+  "freightAmount": 10.00,
+  "discountAmount": 20.00,
+  "paymentAmount": 289.00,
+  "buyerNick": "用户_13800138000",
+  "buyerPhone": "13800138000",
+  "receiverName": "张三",
+  "receiverPhone": "13800138001",
+  "receiverAddress": {
+    "province": "广东省",
+    "city": "深圳市",
+    "district": "南山区",
+    "detail": "科技园南路88号"
+  },
+  "items": [
+    {
+      "skuId": "SKU1001",
+      "skuName": "iPhone 15 Pro 256GB 钛金属",
+      "quantity": 1,
+      "price": 7999.00,
+      "subTotal": 7999.00
+    }
+  ],
+  "raw_json": {}
+}

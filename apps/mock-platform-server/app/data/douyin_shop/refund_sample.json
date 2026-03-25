@@ -1,0 +1,15 @@
+{
+  "refundId": "REF20240320001",
+  "orderId": "DY20240315001",
+  "type": "REFUND_TYPE_ONLY_MONEY",
+  "typeName": "仅退款",
+  "status": "REFUND_STATUS_SUCCESS",
+  "statusName": "退款成功",
+  "applyTime": "2024-03-20T10:00:00Z",
+  "handleTime": "2024-03-20T12:00:00Z",
+  "applyAmount": 197.00,
+  "approveAmount": 197.00,
+  "reason": "不想要了",
+  "reasonDetail": "商品不需要了",
+  "raw_json": {}
+}

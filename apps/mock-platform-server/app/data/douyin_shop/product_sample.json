@@ -1,0 +1,14 @@
+{
+  "productId": "PRD001",
+  "productName": "蓝牙耳机 TWS Pro",
+  "categoryId": "CAT001",
+  "categoryName": "数码配件",
+  "price": 99.00,
+  "stock": 1000,
+  "status": "ON_SALE",
+  "statusName": "上架中",
+  "createTime": "2024-01-01T00:00:00Z",
+  "updateTime": "2024-03-01T00:00:00Z",
+  "description": "真无线蓝牙耳机，支持降噪",
+  "raw_json": {}
+}

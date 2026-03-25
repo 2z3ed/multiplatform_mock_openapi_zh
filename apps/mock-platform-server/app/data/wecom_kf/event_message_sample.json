@@ -1,0 +1,11 @@
+{
+  "msgid": "EVENT20240315001",
+  "event_type": "kf_msg_sent",
+  "agent_id": "kf_agent_001",
+  "user_id": "wecom_user_001",
+  "msg_type": "text",
+  "content": "您好，请问您的订单号是多少？",
+  "create_time": 1710500400,
+  "scene": "customer_service",
+  "raw_json": {}
+}

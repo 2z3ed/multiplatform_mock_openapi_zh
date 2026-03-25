@@ -1,0 +1,32 @@
+{
+  "orderId": "JD20240315001",
+  "shipments": [
+    {
+      "shipmentId": "SHP20240315001",
+      "expressCompany": "京东快递",
+      "expressNo": "JD1234567890",
+      "status": "IN_TRANSIT",
+      "statusName": "运输中",
+      "createTime": "2024-03-16T08:00:00Z",
+      "estimatedArrival": "2024-03-18T18:00:00Z",
+      "trace": [
+        {
+          "time": "2024-03-16T08:00:00Z",
+          "message": "已发货",
+          "location": "深圳分拣中心"
+        },
+        {
+          "time": "2024-03-16T14:30:00Z",
+          "message": "运输中",
+          "location": "深圳-广州干线"
+        },
+        {
+          "time": "2024-03-17T09:15:00Z",
+          "message": "到达目的地",
+          "location": "南山配送站"
+        }
+      ]
+    }
+  ],
+  "raw_json": {}
+}

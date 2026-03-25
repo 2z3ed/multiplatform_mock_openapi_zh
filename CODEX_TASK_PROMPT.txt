@@ -1,0 +1,446 @@
+V1 CODEX TASK PROMPT
+
+You are implementing V1 of a multi-platform customer service middle platform project named Omni-CSX.
+
+You must strictly follow the repository rules defined in:
+- DEVELOPMENT_RULES.txt
+- PROJECT_CONSTRAINTS.txt
+
+Your job is to generate and implement the V1 project skeleton and core functionality.
+
+==================================================
+1. V1 PRODUCT GOAL
+==================================================
+
+V1 only needs to deliver:
+- multi-platform unified customer service intake
+- unified order / shipment / after-sale context
+- AI suggested reply with human confirmation before send
+
+V1 does NOT include:
+- recommendation engine
+- customer profiling
+- marketing tasks
+- campaign system
+- quality inspection center
+- risk center
+- ERP integration center
+- VOC analysis
+- training center
+- Deep Agents
+- automatic reply sending
+
+==================================================
+2. REQUIRED TECH STACK
+==================================================
+
+Backend:
+- FastAPI
+- PostgreSQL
+- Redis
+
+AI:
+- LangChain
+- LangGraph
+
+Frontend:
+- Next.js
+- React
+
+Use FastAPI for all business APIs, admin APIs, webhook APIs, OpenAPI output, and background task triggers.
+
+Use LangChain only for:
+- model abstraction
+- tool calling
+- retrieval integration
+- structured output
+- prompt composition
+- suggestion generation
+
+Use LangGraph only for:
+- suggest_reply_graph
+
+Do not use Deep Agents.
+
+==================================================
+3. REQUIRED PROJECT STRUCTURE
+==================================================
+
+Create this repository structure:
+
+omni-csx/
+  apps/
+    api-gateway/
+    domain-service/
+    ai-orchestrator/
+    knowledge-service/
+    mock-platform-server/
+    agent-console/
+    admin-console/
+  packages/
+    domain-models/
+    provider-sdk/
+    shared-utils/
+    shared-config/
+    shared-db/
+  providers/
+    jd/mock/
+    jd/real/
+    douyin_shop/mock/
+    douyin_shop/real/
+    wecom_kf/mock/
+    wecom_kf/real/
+  infra/
+    docker/
+    migrations/
+    scripts/
+  docs/
+    prd/
+    api/
+    architecture/
+  tests/
+    integration/
+
+==================================================
+4. REQUIRED SERVICES
+==================================================
+
+You must implement the following services:
+
+1. api-gateway
+Responsibilities:
+- unified entry
+- auth middleware
+- request_id middleware
+- access logging
+- expose unified APIs to frontend
+
+2. domain-service
+Responsibilities:
+- unified domain objects
+- conversations
+- messages
+- orders
+- shipments
+- after-sales
+
+3. ai-orchestrator
+Responsibilities:
+- intent classification
+- tool routing
+- suggested reply generation
+- LangGraph suggest_reply_graph
+
+4. knowledge-service
+Responsibilities:
+- document upload
+- chunking
+- embedding
+- retrieval
+
+5. mock-platform-server
+Responsibilities:
+- provide mock APIs for jd
+- provide mock APIs for douyin_shop
+- provide mock APIs for wecom_kf
+
+6. agent-console
+Responsibilities:
+- login page
+- conversation list page
+- conversation detail page
+- message stream
+- reply composer
+- context side panels
+
+7. admin-console
+Responsibilities:
+- platform configuration page
+- provider mode switch
+- knowledge management page
+- audit log page
+
+==================================================
+5. REQUIRED DATABASE TABLES
+==================================================
+
+Create migrations and models for:
+
+- platform_account
+- customer
+- conversation
+- message
+- order_snapshot
+- shipment_snapshot
+- after_sale_case
+- kb_document
+- kb_chunk
+- ai_suggestion
+- audit_log
+
+==================================================
+6. REQUIRED PROVIDERS
+==================================================
+
+Create provider adapters for:
+
+JD:
+- mock/provider.py
+- mock/mapper.py
+- real/provider.py
+
+Douyin Shop:
+- mock/provider.py
+- mock/mapper.py
+- real/provider.py
+
+WeCom KF:
+- mock/provider.py
+- mock/mapper.py
+- real/provider.py
+
+Rules:
+- V1 only implements mock behavior
+- real providers remain placeholders
+- frontend and domain-service must never depend on platform raw JSON directly
+- all platform data must be mapped into unified DTOs first
+
+==================================================
+7. REQUIRED MOCK PLATFORM APIS
+==================================================
+
+JD:
+- POST /mock/jd/oauth/token
+- GET /mock/jd/orders/{orderId}
+- GET /mock/jd/shipments/{orderId}
+- GET /mock/jd/after-sales/{afterSaleId}
+
+Douyin Shop:
+- POST /mock/douyin-shop/auth/token
+- GET /mock/douyin-shop/orders/{orderId}
+- GET /mock/douyin-shop/refunds/{afterSaleId}
+- GET /mock/douyin-shop/products/{productId}
+
+WeCom KF:
+- POST /mock/wecom-kf/token
+- POST /mock/wecom-kf/messages/sync
+- POST /mock/wecom-kf/service-state/trans
+- POST /mock/wecom-kf/event-message/send
+
+Use static JSON fixtures for mock responses.
+
+==================================================
+8. REQUIRED UNIFIED APIS
+==================================================
+
+Conversation APIs:
+- GET /api/conversations
+- GET /api/conversations/{id}
+- GET /api/conversations/{id}/messages
+- POST /api/conversations/{id}/assign
+- POST /api/conversations/{id}/handoff
+
+Context APIs:
+- GET /api/orders/{platform}/{orderId}
+- GET /api/shipments/{platform}/{orderId}
+- GET /api/after-sales/{platform}/{afterSaleId}
+
+AI API:
+- POST /api/ai/suggest-reply
+
+Knowledge APIs:
+- POST /api/kb/documents
+- POST /api/kb/reindex
+- GET /api/kb/search
+
+Audit API:
+- GET /api/audit-logs
+
+==================================================
+9. REQUIRED AI LAYER
+==================================================
+
+In ai-orchestrator, implement:
+
+chains:
+- model_factory.py
+- intent_chain.py
+- suggest_reply_chain.py
+
+tools:
+- order_tools.py
+- shipment_tools.py
+- after_sale_tools.py
+- kb_tools.py
+
+graphs:
+- suggest_reply_graph.py
+
+Only one graph is allowed in V1:
+suggest_reply_graph
+
+Required nodes:
+- load_context
+- classify_intent
+- route_to_tool_or_kb
+- build_prompt_context
+- generate_suggestion
+- human_review_interrupt
+
+The graph must return structured output with:
+- intent
+- confidence
+- suggested_reply
+- used_tools
+- risk_level
+
+The final send action must remain human-confirmed.
+Do not implement auto-send.
+
+==================================================
+10. REQUIRED FRONTEND PAGES
+==================================================
+
+Agent console:
+- /login
+- /conversations
+- /conversations/[id]
+
+Conversation detail page must include:
+- ConversationHeader
+- MessageStream
+- ReplyComposer
+- OrderPanel
+- ShipmentPanel
+- AfterSalePanel
+- SuggestionPanel
+
+Admin console:
+- /platforms
+- /knowledge
+- /audit
+
+==================================================
+11. REQUIRED AUDIT EVENTS
+==================================================
+
+Audit logs must be created for:
+- platform config change
+- provider mode switch
+- document upload
+- knowledge reindex
+- AI suggestion generation
+- agent message send
+- conversation handoff
+- conversation assignment
+
+==================================================
+12. REQUIRED DEVELOPMENT ORDER
+==================================================
+
+You must implement in this order:
+
+Phase 1:
+- create repository structure
+- create docker compose
+- create shared config
+- create shared DB module
+- create migrations
+
+Phase 2:
+- implement mock-platform-server
+- create provider-sdk interfaces
+- implement provider mock adapters
+
+Phase 3:
+- implement domain-service
+- implement unified order / shipment / after-sale APIs
+- implement conversation and message APIs
+
+Phase 4:
+- implement knowledge-service
+
+Phase 5:
+- implement ai-orchestrator with LangChain and LangGraph
+
+Phase 6:
+- implement agent-console
+
+Phase 7:
+- implement admin-console
+
+Phase 8:
+- implement integration tests
+- verify audit logs
+- verify provider mode switching
+
+==================================================
+13. REQUIRED TESTS
+==================================================
+
+At minimum, create:
+
+Service/API tests:
+- mock platform routes
+- provider mapping
+- domain services
+- knowledge retrieval
+- intent classification
+- suggest_reply_graph
+- suggest-reply API
+- provider mode switch
+
+Integration tests:
+- mock message -> unified context -> AI suggestion flow
+- provider mode switch flow
+
+==================================================
+14. HARD CONSTRAINTS
+==================================================
+
+Do NOT:
+- add V2 or V3 functionality
+- build recommendation engine
+- build marketing tasks
+- build quality inspection
+- build risk center
+- build ERP integrations
+- introduce Deep Agents
+- bypass provider-sdk
+- use LangGraph outside suggest_reply_graph
+- auto-send AI messages
+- skip audit logs
+- skip tests
+
+Do:
+- keep services modular
+- keep provider logic isolated
+- keep AI logic isolated
+- expose OpenAPI from every backend service
+- use typed schemas
+- prefer explicit code over clever abstractions
+
+==================================================
+15. DEFINITION OF DONE
+==================================================
+
+V1 is complete only when:
+- all required services run locally
+- all required DB tables exist
+- all mock APIs return valid responses
+- unified APIs work
+- knowledge upload and search work
+- AI suggested reply works end-to-end
+- human can review and send the reply
+- audit logs are recorded and visible
+- required tests pass
+
+==================================================
+16. EXECUTION INSTRUCTION
+==================================================
+
+Start by generating the repository structure and empty files first.
+Then implement each phase in order.
+Do not jump ahead.
+Do not add speculative features.
+When uncertain, choose the simplest implementation that satisfies V1 constraints.

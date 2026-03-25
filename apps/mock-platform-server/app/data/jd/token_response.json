@@ -1,0 +1,7 @@
+{
+  "access_token": "mock_jd_access_token_abc123",
+  "token_type": "Bearer",
+  "expires_in": 7200,
+  "refresh_token": "mock_jd_refresh_token_xyz789",
+  "scope": "order.read shipment.read refund.read"
+}

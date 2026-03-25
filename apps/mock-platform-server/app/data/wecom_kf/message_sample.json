@@ -1,0 +1,11 @@
+{
+  "msgid": "MSG20240315001",
+  "from_user": "wecom_user_001",
+  "to_user": "kf_agent_001",
+  "create_time": 1710499800,
+  "msg_type": "text",
+  "content": "你好，我想查询一下我的订单状态",
+  "session_id": "SESSION001",
+  "scene": "customer_service",
+  "raw_json": {}
+}

@@ -1,0 +1,281 @@
+V1 DEVELOPMENT RULES
+
+1. PRODUCT GOAL
+
+V1 only does three things:
+- Multi-platform unified customer service intake
+- Unified order / shipment / after-sale context
+- AI suggested reply + human confirmation before send
+
+V1 explicitly does NOT do:
+- automatic marketing
+- automatic quality inspection
+- deep ERP integration
+- fully automatic reply sending
+- complex multi-tenant SaaS features
+- Deep Agents in the main execution path
+
+Any requirement not directly serving the three core goals above must be postponed to V2 or V3.
+
+2. PRIMARY TECH STACK
+
+Backend:
+- FastAPI
+- PostgreSQL
+- Redis
+
+AI:
+- LangChain
+- LangGraph
+
+Frontend:
+- Next.js
+- React
+
+3. BACKEND OWNERSHIP RULE
+
+FastAPI owns all standard business backend concerns:
+- REST API
+- webhook endpoints
+- provider config
+- CRUD
+- audit logs
+- admin APIs
+- background tasks
+
+Do NOT use LangGraph for:
+- platform account management
+- provider mode switching
+- database CRUD
+- admin settings
+- normal service logic
+- frontend logic
+
+4. LANGCHAIN USAGE RULE
+
+LangChain is allowed ONLY in the AI layer for:
+- model factory / model abstraction
+- tool calling
+- retrieval integration
+- prompt composition
+- structured outputs
+- suggested reply generation
+
+Do NOT turn LangChain into the whole application framework.
+
+5. LANGGRAPH USAGE RULE
+
+V1 only has one graph:
+- suggest_reply_graph
+
+The graph is only responsible for:
+- load_context
+- classify_intent
+- route_to_tool_or_kb
+- build_prompt_context
+- generate_suggestion
+- human_review_interrupt
+
+Do NOT use LangGraph for:
+- provider implementation
+- webhook handling
+- admin backend
+- database persistence logic
+- frontend routing
+- normal HTTP API orchestration
+
+6. DEEP AGENTS RULE
+
+Deep Agents are forbidden in V1 mainline development.
+They may only be reconsidered in V3 for side-path analytical tasks such as:
+- VOC deep analysis
+- training case generation
+- strategy recommendation
+
+7. PROVIDER PATTERN IS MANDATORY
+
+All platform integrations must follow:
+
+business layer
+-> provider-sdk interface
+-> provider implementation
+-> mock / real switch
+
+Never allow:
+- frontend to read platform raw JSON directly
+- domain-service to call platform SDKs directly
+- ai-orchestrator to perform raw platform HTTP integration directly
+
+Each platform must keep two directories:
+- mock
+- real
+
+V1 implements mock only.
+V1 can leave real as an empty skeleton.
+
+8. MOCK FIRST IS MANDATORY
+
+All platform capabilities in V1 must first go through mock-platform-server.
+
+Correct order:
+official contract
+-> mock server
+-> provider mock
+-> unified domain
+-> UI and AI
+
+Never skip platform abstraction just because a real API key is not available yet.
+
+9. UNIFIED DOMAIN MODEL FIRST
+
+All platform data must be mapped into unified objects before being used by business logic or AI.
+
+V1 unified objects:
+- Customer
+- Conversation
+- Message
+- Order
+- Shipment
+- AfterSaleCase
+- AISuggestion
+- AuditLog
+
+Any platform-specific raw fields must go into raw_json or extra_json, not pollute the main unified model.
+
+10. AI MUST NOT FREEFORM HIGH-RISK FACTS
+
+For order / shipment / after-sale questions:
+- AI must call tools first
+- AI must not answer from memory or pure generation only
+
+For FAQ / SOP:
+- AI must retrieve knowledge first
+- AI should cite evidence internally in logs where possible
+
+11. STRUCTURED AI OUTPUT IS REQUIRED
+
+Suggested reply output must always be structured with fields like:
+- intent
+- confidence
+- suggested_reply
+- used_tools
+- risk_level
+
+Plain freeform response is not acceptable as the main internal contract.
+
+12. HUMAN CONFIRMATION IS REQUIRED
+
+In V1, AI can only generate a suggested reply.
+Final message send must be manually confirmed by a human agent.
+
+No direct auto-send in V1.
+
+13. AUDIT LOGGING IS REQUIRED
+
+The following actions must always create an audit log:
+- platform configuration change
+- provider_mode switch
+- document upload
+- knowledge reindex
+- AI suggestion generation
+- agent message send
+- conversation handoff
+- conversation assignment
+
+Any feature without audit logging is incomplete.
+
+14. TESTING IS REQUIRED
+
+Every new capability must include at minimum:
+- one service-level test
+- one API-level test
+
+No tests = not complete.
+
+15. OPENAPI IS REQUIRED
+
+Every service must expose OpenAPI.
+Every important endpoint must have:
+- request schema
+- response schema
+- error handling
+- path / query validation
+
+16. BUILD ORDER IS REQUIRED
+
+The development order must always be:
+- schema / database
+- repository
+- service
+- API
+- OpenAPI
+- test
+- frontend
+
+Never start from the page first.
+
+17. DIRECTORY RESPONSIBILITY MUST STAY CLEAN
+
+api-gateway:
+- only unified entry and routing
+
+domain-service:
+- only unified business entities and domain logic
+
+ai-orchestrator:
+- only AI chains, tools, graphs, and suggestion flow
+
+knowledge-service:
+- only document ingest, chunking, embedding, retrieval
+
+mock-platform-server:
+- only simulated platform APIs
+
+agent-console:
+- only agent workbench UI
+
+admin-console:
+- only admin/config UI
+
+18. V1 FRONTEND MUST STAY MINIMAL
+
+Agent console only needs:
+- conversation list page
+- conversation detail page
+
+Admin console only needs:
+- platform configuration page
+- knowledge page
+- audit log page
+
+Do not build extra V2/V3 UI in V1.
+
+19. NAMING CONVENTIONS
+
+Use:
+- snake_case for Python files
+- snake_case for database tables
+- PascalCase for React components
+- consistent REST path naming
+- DTO / schema names aligned with unified domain models
+
+20. PLACEHOLDER RULE
+
+Any future V2/V3 feature that will definitely exist later may have:
+- empty service skeleton
+- interface placeholder
+- provider placeholder
+
+But do NOT implement business logic for those future features inside V1.
+
+21. END-TO-END DEFINITION OF DONE
+
+V1 is done only when all of the following are true:
+- 3 platform mock providers are callable
+- unified domain APIs return normalized objects
+- agent console shows conversation and context panels
+- AI suggested reply works
+- human can edit and send the suggested reply
+- provider mode can switch
+- knowledge upload and retrieval work
+- audit logs are visible

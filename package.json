@@ -1,0 +1,10 @@
+{
+  "name": "omni-csx-v1",
+  "version": "0.1.0",
+  "private": true,
+  "packageManager": "pnpm@10.17.1",
+  "scripts": {
+    "dev:agent": "pnpm --filter agent-console dev",
+    "dev:admin": "pnpm --filter admin-console dev"
+  }
+}

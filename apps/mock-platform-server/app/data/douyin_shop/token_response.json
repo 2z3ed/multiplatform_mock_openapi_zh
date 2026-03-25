@@ -1,0 +1,7 @@
+{
+  "access_token": "mock_douyin_access_token_def456",
+  "token_type": "Bearer",
+  "expires_in": 7200,
+  "refresh_token": "mock_douyin_refresh_token_uvw789",
+  "scope": "order.read refund.read product.read"
+}
