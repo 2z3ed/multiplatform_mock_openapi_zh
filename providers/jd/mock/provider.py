@@ -9,7 +9,7 @@ from providers.jd.mock.mapper import map_order, map_shipment, map_after_sale
 
 
 class JdMockProvider(OrderProvider, ShipmentProvider, AfterSaleProvider):
-    def __init__(self, base_url: str = "http://localhost:8004"):
+    def __init__(self, base_url: str = "http://mock-platform-server:8004"):
         self.base_url = base_url
 
     def get_platform(self) -> str:

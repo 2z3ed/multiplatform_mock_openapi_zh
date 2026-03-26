@@ -1,7 +1,11 @@
 from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel
+import httpx
+import os
 
 router = APIRouter(prefix="/api/ai", tags=["ai"])
+
+DOMAIN_SERVICE_URL = os.getenv("DOMAIN_SERVICE_URL", "http://domain-service:8001")
 
 
 class SuggestReplyRequest(BaseModel):
@@ -30,5 +34,22 @@ def suggest_reply(req: SuggestReplyRequest) -> SuggestReplyResponse:
         platform=req.platform,
         order_id=req.order_id
     )
+    
+    try:
+        httpx.post(
+            f"{DOMAIN_SERVICE_URL}/api/audit-logs",
+            json={
+                "action": "ai_suggestion_generated",
+                "actor_type": "ai",
+                "actor_id": "ai-orchestrator",
+                "target_type": "conversation",
+                "target_id": req.conversation_id,
+                "detail": f"Generated suggestion for intent: {result['intent']}",
+                "detail_json": {"intent": result["intent"], "confidence": result["confidence"]}
+            },
+            timeout=5
+        )
+    except Exception:
+        pass
     
     return SuggestReplyResponse(**result)

@@ -25,7 +25,7 @@ class AuditService:
     def log_event(
         self,
         action: str,
-        actor_type: str = "system",
+        actor_type: Optional[str] = "system",
         actor_id: Optional[str] = None,
         target_type: Optional[str] = None,
         target_id: Optional[str] = None,
@@ -35,7 +35,7 @@ class AuditService:
         """Log an audit event"""
         log_entry = {
             "id": f"log_{len(self._logs) + 1:05d}",
-            "actor_type": actor_type,
+            "actor_type": actor_type or "system",
             "actor_id": actor_id,
             "action": action,
             "target_type": target_type,
