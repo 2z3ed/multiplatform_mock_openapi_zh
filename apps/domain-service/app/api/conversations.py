@@ -1,5 +1,7 @@
-from fastapi import APIRouter, HTTPException, status
-from app.services.audit_service import audit_service
+from fastapi import APIRouter, HTTPException, status, Depends
+from sqlalchemy.orm import Session
+from app.services.audit_service import get_audit_service, AuditService
+from shared_db import get_db
 
 router = APIRouter(prefix="/api/conversations", tags=["conversations"])
 
@@ -99,12 +101,17 @@ def get_messages(conversation_id: str, skip: int = 0, limit: int = 50) -> dict:
 
 
 @router.post("/{conversation_id}/assign")
-def assign_conversation(conversation_id: str, agent_id: str) -> dict:
+def assign_conversation(
+    conversation_id: str,
+    agent_id: str,
+    db: Session = Depends(get_db),
+    audit_svc: AuditService = Depends(lambda db=Depends(get_db): get_audit_service(db))
+) -> dict:
     for conv in MOCK_CONVERSATIONS:
         if conv["id"] == conversation_id:
             old_agent = conv["assigned_agent"]
             conv["assigned_agent"] = agent_id
-            audit_service.conversation_assigned(
+            audit_svc.conversation_assigned(
                 conversation_id=conversation_id,
                 agent_id=agent_id,
                 assigned_by="api"
@@ -114,12 +121,17 @@ def assign_conversation(conversation_id: str, agent_id: str) -> dict:
 
 
 @router.post("/{conversation_id}/handoff")
-def handoff_conversation(conversation_id: str, target_agent: str) -> dict:
+def handoff_conversation(
+    conversation_id: str,
+    target_agent: str,
+    db: Session = Depends(get_db),
+    audit_svc: AuditService = Depends(lambda db=Depends(get_db): get_audit_service(db))
+) -> dict:
     for conv in MOCK_CONVERSATIONS:
         if conv["id"] == conversation_id:
             old_agent = conv["assigned_agent"]
             conv["assigned_agent"] = target_agent
-            audit_service.conversation_handed_off(
+            audit_svc.conversation_handed_off(
                 conversation_id=conversation_id,
                 from_agent=old_agent or "none",
                 to_agent=target_agent

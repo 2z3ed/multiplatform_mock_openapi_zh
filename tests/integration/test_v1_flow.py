@@ -203,3 +203,57 @@ class TestHealth:
         async with httpx.AsyncClient() as client:
             response = await client.get(f"{MOCK_SERVER_URL}/health")
             assert response.status_code == 200
+
+
+class TestAuditLogPersistence:
+    """Test audit log persistence end-to-end"""
+
+    @pytest.mark.asyncio
+    async def test_audit_log_persists_after_creation(self):
+        """Test that audit log is persisted to database after creation"""
+        async with httpx.AsyncClient() as client:
+            create_response = await client.post(
+                f"{DOMAIN_SERVICE_URL}/api/audit-logs",
+                json={
+                    "action": "message_sent",
+                    "actor_type": "agent",
+                    "actor_id": "agent_test",
+                    "target_type": "conversation",
+                    "target_id": "conv_e2e_test",
+                    "detail": "End-to-end test message"
+                }
+            )
+            assert create_response.status_code == 200
+            created_log = create_response.json()
+            assert created_log["status"] == "ok"
+            assert "log" in created_log
+            log_id = created_log["log"]["id"]
+            assert log_id is not None
+
+            get_response = await client.get(f"{DOMAIN_SERVICE_URL}/api/audit-logs?limit=100")
+            assert get_response.status_code == 200
+            data = get_response.json()
+            assert "items" in data
+            found = any(item["id"] == log_id for item in data["items"])
+            assert found, f"Created audit log with id {log_id} not found in database"
+
+    @pytest.mark.asyncio
+    async def test_conversation_assign_creates_audit_log(self):
+        """Test that assigning conversation creates audit log"""
+        async with httpx.AsyncClient() as client:
+            before_response = await client.get(f"{DOMAIN_SERVICE_URL}/api/audit-logs?limit=100")
+            before_count = len(before_response.json()["items"])
+
+            assign_response = await client.post(
+                f"{DOMAIN_SERVICE_URL}/api/conversations/conv_001/assign",
+                params={"agent_id": "agent_test_assign"}
+            )
+            assert assign_response.status_code == 200
+
+            after_response = await client.get(f"{DOMAIN_SERVICE_URL}/api/audit-logs?limit=100")
+            after_data = after_response.json()
+            after_count = len(after_data["items"])
+
+            assert after_count > before_count
+            conv_assign_logs = [l for l in after_data["items"] if l.get("action") == "conversation_assigned"]
+            assert len(conv_assign_logs) > 0

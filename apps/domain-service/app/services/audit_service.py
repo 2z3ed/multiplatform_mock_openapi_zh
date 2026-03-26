@@ -15,12 +15,25 @@ Records all required audit events:
 from datetime import datetime
 from typing import Optional
 
+from sqlalchemy.orm import Session
+
+from app.repositories.audit_log_repository import AuditLogRepository
+
 
 class AuditService:
-    """Simple in-memory audit log service for V1"""
+    """Audit service for V1 - DB-backed"""
 
-    def __init__(self):
-        self._logs: list[dict] = []
+    def __init__(self, db_session: Optional[Session] = None):
+        self._db_session = db_session
+        self._repo: Optional[AuditLogRepository] = None
+
+    def _get_repo(self) -> AuditLogRepository:
+        if self._repo is None:
+            if self._db_session is None:
+                from shared_db import get_db
+                self._db_session = next(get_db())
+            self._repo = AuditLogRepository(self._db_session)
+        return self._repo
 
     def log_event(
         self,
@@ -32,21 +45,29 @@ class AuditService:
         detail: Optional[str] = None,
         detail_json: Optional[dict] = None
     ) -> dict:
-        """Log an audit event"""
-        log_entry = {
-            "id": f"log_{len(self._logs) + 1:05d}",
-            "actor_type": actor_type or "system",
-            "actor_id": actor_id,
-            "action": action,
-            "target_type": target_type,
-            "target_id": target_id,
-            "detail": detail,
-            "detail_json": detail_json or {},
-            "created_at": datetime.utcnow().isoformat() + "Z",
-            "updated_at": datetime.utcnow().isoformat() + "Z",
+        """Log an audit event to database"""
+        repo = self._get_repo()
+        log_entry = repo.create(
+            action=action,
+            actor_type=actor_type or "system",
+            actor_id=actor_id,
+            target_type=target_type,
+            target_id=target_id,
+            detail=detail,
+            detail_json=detail_json
+        )
+        return {
+            "id": log_entry.id,
+            "actor_type": log_entry.actor_type,
+            "actor_id": log_entry.actor_id,
+            "action": log_entry.action,
+            "target_type": log_entry.target_type,
+            "target_id": log_entry.target_id,
+            "detail": log_entry.detail,
+            "detail_json": log_entry.detail_json,
+            "created_at": log_entry.created_at.isoformat() if log_entry.created_at else None,
+            "updated_at": log_entry.updated_at.isoformat() if log_entry.updated_at else None,
         }
-        self._logs.append(log_entry)
-        return log_entry
 
     def get_logs(
         self,
@@ -56,14 +77,25 @@ class AuditService:
         limit: int = 100
     ) -> list[dict]:
         """Get audit logs with optional filters"""
-        logs = self._logs
-        if action:
-            logs = [l for l in logs if l["action"] == action]
-        if actor_id:
-            logs = [l for l in logs if l["actor_id"] == actor_id]
-        if target_id:
-            logs = [l for l in logs if l["target_id"] == target_id]
-        return logs[-limit:]
+        repo = self._get_repo()
+        logs = repo.get_logs(
+            action=action,
+            actor_id=actor_id,
+            target_id=target_id,
+            limit=limit
+        )
+        return [{
+            "id": log.id,
+            "actor_type": log.actor_type,
+            "actor_id": log.actor_id,
+            "action": log.action,
+            "target_type": log.target_type,
+            "target_id": log.target_id,
+            "detail": log.detail,
+            "detail_json": log.detail_json,
+            "created_at": log.created_at.isoformat() if log.created_at else None,
+            "updated_at": log.updated_at.isoformat() if log.updated_at else None,
+        } for log in logs]
 
     def platform_config_updated(self, platform: str, config: dict) -> dict:
         """Log platform config update"""
@@ -171,6 +203,19 @@ class AuditService:
             detail=f"Handoff from {from_agent} to {to_agent}",
             detail_json={"from_agent": from_agent, "to_agent": to_agent}
         )
+
+
+_audit_service_instance: Optional[AuditService] = None
+
+
+def get_audit_service(db: Session = None) -> AuditService:
+    """Dependency injection for audit service"""
+    global _audit_service_instance
+    if db is not None:
+        return AuditService(db_session=db)
+    if _audit_service_instance is None:
+        _audit_service_instance = AuditService()
+    return _audit_service_instance
 
 
 audit_service = AuditService()

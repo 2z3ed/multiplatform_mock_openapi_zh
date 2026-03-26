@@ -1,9 +1,16 @@
-from fastapi import APIRouter, Query, HTTPException
+from fastapi import APIRouter, Query, HTTPException, Depends
 from typing import Optional
 from pydantic import BaseModel
-from app.services.audit_service import audit_service
+from sqlalchemy.orm import Session
+
+from app.services.audit_service import AuditService
+from shared_db import get_db
 
 router = APIRouter(prefix="/api/audit-logs", tags=["audit"])
+
+
+def get_audit_service(db: Session = Depends(get_db)) -> AuditService:
+    return AuditService(db_session=db)
 
 
 class AuditLogCreate(BaseModel):
@@ -20,7 +27,8 @@ class AuditLogCreate(BaseModel):
 def get_audit_logs(
     action: Optional[str] = Query(None),
     user: Optional[str] = Query(None),
-    limit: int = Query(100, le=500)
+    limit: int = Query(100, le=500),
+    audit_service: AuditService = Depends(get_audit_service)
 ) -> dict:
     logs = audit_service.get_logs(
         action=action,
@@ -34,7 +42,10 @@ def get_audit_logs(
 
 
 @router.post("")
-def create_audit_log(log: AuditLogCreate) -> dict:
+def create_audit_log(
+    log: AuditLogCreate,
+    audit_service: AuditService = Depends(get_audit_service)
+) -> dict:
     result = audit_service.log_event(
         action=log.action,
         actor_type=log.actor_type,
