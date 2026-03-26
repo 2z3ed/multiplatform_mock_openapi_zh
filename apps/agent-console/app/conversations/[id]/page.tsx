@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, use } from "react";
 import { useParams } from "next/navigation";
 
 interface Message {
@@ -19,68 +19,48 @@ interface Conversation {
   assigned_agent: string | null;
 }
 
-const mockMessages: Message[] = [
-  {
-    id: "msg_001",
-    direction: "inbound",
-    content: "你好，我想查询一下我的订单状态",
-    sender: "customer",
-    create_time: "2024-03-20T14:00:00Z",
-  },
-  {
-    id: "msg_002",
-    direction: "outbound",
-    content: "您好，请问您的订单号是多少？",
-    sender: "agent",
-    create_time: "2024-03-20T14:05:00Z",
-  },
-  {
-    id: "msg_003",
-    direction: "inbound",
-    content: "订单号是 JD20240315001",
-    sender: "customer",
-    create_time: "2024-03-20T14:10:00Z",
-  },
-];
+interface Order {
+  order_id: string;
+  status: string;
+  status_name: string;
+  create_time: string;
+  payment_amount: number;
+  receiver_name: string;
+  receiver_phone: string;
+  items: { sku_name: string; quantity: number }[];
+}
 
-const mockOrder = {
-  order_id: "JD20240315001",
-  status: "PAID",
-  status_name: "已付款",
-  create_time: "2024-03-15T10:30:00Z",
-  payment_amount: 289.0,
-  receiver_name: "张三",
-  receiver_phone: "13800138001",
-  items: [{ sku_name: "iPhone 15 Pro 256GB 钛金属", quantity: 1 }],
-};
+interface Shipment {
+  shipments: {
+    express_company: string;
+    express_no: string;
+    status: string;
+    status_name: string;
+  }[];
+}
 
-const mockShipment = {
-  shipments: [
-    {
-      express_company: "京东快递",
-      express_no: "JD1234567890",
-      status: "IN_TRANSIT",
-      status_name: "运输中",
-    },
-  ],
-};
+interface AfterSale {
+  after_sale_id: string;
+  type: string;
+  type_name: string;
+  status: string;
+  status_name: string;
+  apply_amount: number;
+}
 
-const mockAfterSale = {
-  after_sale_id: "AS20240320001",
-  type: "REFUND",
-  type_name: "退款",
-  status: "APPROVED",
-  status_name: "已通过",
-  apply_amount: 289.0,
-};
+interface AISuggestion {
+  intent: string;
+  confidence: number;
+  suggested_reply: string;
+  used_tools: string[];
+  risk_level: string;
+  needs_human_review: boolean;
+}
 
-const mockSuggestion = {
-  intent: "order_query",
-  confidence: 0.85,
-  suggested_reply: "您的订单 JD20240315001 目前状态是已付款，商品已发货，物流正在运输中，预计明天送达。",
-  used_tools: ["get_order"],
-  risk_level: "low",
-  needs_human_review: true,
+const platformLabels: Record<string, string> = {
+  jd: "京东",
+  douyin_shop: "抖音",
+  wecom_kf: "企微",
 };
 
 function ConversationHeader({ conversation }: { conversation: Conversation }) {
@@ -90,7 +70,7 @@ function ConversationHeader({ conversation }: { conversation: Conversation }) {
         <div>
           <h2 className="text-lg font-medium">会话 {conversation.id}</h2>
           <p className="text-sm text-gray-500">
-            客户: {conversation.customer_nick} | 平台: {conversation.platform}
+            客户: {conversation.customer_nick} | 平台: {platformLabels[conversation.platform] || conversation.platform}
           </p>
         </div>
         <div className="flex items-center gap-4">
@@ -144,6 +124,10 @@ function ReplyComposer({
 }) {
   const [text, setText] = useState(initialText || "");
 
+  useEffect(() => {
+    setText(initialText || "");
+  }, [initialText]);
+
   return (
     <div className="border-t p-4 bg-white">
       <textarea
@@ -169,7 +153,14 @@ function ReplyComposer({
   );
 }
 
-function OrderPanel({ order }: { order: typeof mockOrder }) {
+function OrderPanel({ order }: { order: Order | null }) {
+  if (!order) return (
+    <div className="bg-white rounded-lg shadow p-4">
+      <h3 className="font-medium text-lg mb-3">订单信息</h3>
+      <p className="text-sm text-gray-500">暂无订单信息</p>
+    </div>
+  );
+  
   return (
     <div className="bg-white rounded-lg shadow p-4">
       <h3 className="font-medium text-lg mb-3">订单信息</h3>
@@ -203,7 +194,14 @@ function OrderPanel({ order }: { order: typeof mockOrder }) {
   );
 }
 
-function ShipmentPanel({ shipment }: { shipment: typeof mockShipment }) {
+function ShipmentPanel({ shipment }: { shipment: Shipment | null }) {
+  if (!shipment || !shipment.shipments?.length) return (
+    <div className="bg-white rounded-lg shadow p-4">
+      <h3 className="font-medium text-lg mb-3">物流信息</h3>
+      <p className="text-sm text-gray-500">暂无物流信息</p>
+    </div>
+  );
+  
   return (
     <div className="bg-white rounded-lg shadow p-4">
       <h3 className="font-medium text-lg mb-3">物流信息</h3>
@@ -227,7 +225,14 @@ function ShipmentPanel({ shipment }: { shipment: typeof mockShipment }) {
   );
 }
 
-function AfterSalePanel({ afterSale }: { afterSale: typeof mockAfterSale }) {
+function AfterSalePanel({ afterSale }: { afterSale: AfterSale | null }) {
+  if (!afterSale) return (
+    <div className="bg-white rounded-lg shadow p-4">
+      <h3 className="font-medium text-lg mb-3">售后信息</h3>
+      <p className="text-sm text-gray-500">暂无售后信息</p>
+    </div>
+  );
+  
   return (
     <div className="bg-white rounded-lg shadow p-4">
       <h3 className="font-medium text-lg mb-3">售后信息</h3>
@@ -256,10 +261,24 @@ function AfterSalePanel({ afterSale }: { afterSale: typeof mockAfterSale }) {
 function SuggestionPanel({
   suggestion,
   onApply,
+  onGenerate,
 }: {
-  suggestion: typeof mockSuggestion;
+  suggestion: AISuggestion | null;
   onApply: (text: string) => void;
+  onGenerate: () => void;
 }) {
+  if (!suggestion) return (
+    <div className="bg-white rounded-lg shadow p-4 border-l-4 border-gray-300">
+      <h3 className="font-medium text-lg mb-3">AI 建议回复</h3>
+      <button
+        onClick={onGenerate}
+        className="px-3 py-1 bg-blue-500 text-white text-sm rounded hover:bg-blue-600"
+      >
+        生成建议
+      </button>
+    </div>
+  );
+  
   return (
     <div className="bg-white rounded-lg shadow p-4 border-l-4 border-blue-500">
       <h3 className="font-medium text-lg mb-3">AI 建议回复</h3>
@@ -295,6 +314,12 @@ function SuggestionPanel({
         >
           使用建议回复
         </button>
+        <button
+          onClick={onGenerate}
+          className="px-3 py-1 bg-gray-500 text-white text-sm rounded hover:bg-gray-600"
+        >
+          重新生成
+        </button>
         <span className="text-xs text-gray-500 self-center">
           需人工确认后发送
         </span>
@@ -303,25 +328,53 @@ function SuggestionPanel({
   );
 }
 
-export default function ConversationDetailPage() {
-  const params = useParams();
+const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
+
+export default function ConversationDetailPage({ params }: { params: { id: string } }) {
+  const convId = params.id;
   const [conversation, setConversation] = useState<Conversation | null>(null);
   const [messages, setMessages] = useState<Message[]>([]);
+  const [order, setOrder] = useState<Order | null>(null);
+  const [shipment, setShipment] = useState<Shipment | null>(null);
+  const [afterSale, setAfterSale] = useState<AfterSale | null>(null);
+  const [suggestion, setSuggestion] = useState<AISuggestion | null>(null);
   const [replyText, setReplyText] = useState("");
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    const convId = params.id as string;
-    setConversation({
-      id: convId,
-      platform: "jd",
-      customer_nick: "用户_13800138000",
-      status: "active",
-      assigned_agent: "agent_001",
-    });
-    setMessages(mockMessages);
-  }, [params.id]);
+    async function fetchData() {
+      try {
+        const [convRes, msgRes] = await Promise.all([
+          fetch(`/api/conversations/${convId}`),
+          fetch(`/api/conversations/${convId}/messages`),
+        ]);
+        
+        const convData = await convRes.json();
+        const msgData = await msgRes.json();
+        
+        setConversation(convData);
+        setMessages(msgData.items || []);
+        
+        if (convData.platform === "jd") {
+          const [orderRes, shipmentRes] = await Promise.all([
+            fetch(`/api/orders/jd/${convId}`),
+            fetch(`${API_URL}/api/shipments/jd/${convId}`),
+          ]);
+          const orderData = await orderRes.json();
+          const shipmentData = await shipmentRes.json();
+          setOrder(orderData.items?.[0] || null);
+          setShipment(shipmentData.shipments ? shipmentData : null);
+        }
+      } catch (error) {
+        console.error("Failed to fetch conversation data:", error);
+      } finally {
+        setLoading(false);
+      }
+    }
+    fetchData();
+  }, [convId]);
 
-  const handleSend = (text: string) => {
+  const handleSend = async (text: string) => {
     const newMsg: Message = {
       id: `msg_${Date.now()}`,
       direction: "outbound",
@@ -330,13 +383,53 @@ export default function ConversationDetailPage() {
       create_time: new Date().toISOString(),
     };
     setMessages([...messages, newMsg]);
+
+    try {
+      await fetch("/api/audit-logs", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          action: "message_sent",
+          actor_type: "agent",
+          actor_id: "agent_001",
+          target_type: "message",
+          target_id: newMsg.id,
+          detail: `Sent message in conversation: ${convId}`,
+          detail_json: { conversation_id: convId, content: text },
+        }),
+      });
+    } catch (error) {
+      console.error("Failed to create audit log:", error);
+    }
   };
 
   const handleApplySuggestion = (text: string) => {
     setReplyText(text);
   };
 
-  if (!conversation) return <div>加载中...</div>;
+  const handleGenerateSuggestion = async () => {
+    try {
+      const lastMsg = messages.filter(m => m.direction === "inbound").pop();
+      if (!lastMsg) return;
+      
+      const res = await fetch(`${API_URL}/api/ai/suggest-reply`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          conversation_id: convId,
+          message: lastMsg.content,
+          platform: conversation?.platform || "jd",
+        }),
+      });
+      const data = await res.json();
+      setSuggestion(data);
+    } catch (error) {
+      console.error("Failed to generate suggestion:", error);
+    }
+  };
+
+  if (loading) return <div className="p-8 text-center">加载中...</div>;
+  if (!conversation) return <div className="p-8 text-center">会话不存在</div>;
 
   return (
     <div className="h-screen flex flex-col bg-gray-50">
@@ -347,12 +440,13 @@ export default function ConversationDetailPage() {
           <ReplyComposer onSend={handleSend} initialText={replyText} />
         </div>
         <div className="w-80 border-l bg-gray-100 p-4 space-y-4 overflow-y-auto">
-          <OrderPanel order={mockOrder} />
-          <ShipmentPanel shipment={mockShipment} />
-          <AfterSalePanel afterSale={mockAfterSale} />
+          <OrderPanel order={order} />
+          <ShipmentPanel shipment={shipment} />
+          <AfterSalePanel afterSale={afterSale} />
           <SuggestionPanel
-            suggestion={mockSuggestion}
+            suggestion={suggestion}
             onApply={handleApplySuggestion}
+            onGenerate={handleGenerateSuggestion}
           />
         </div>
       </div>

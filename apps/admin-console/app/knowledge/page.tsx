@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 
 interface Document {
   document_id: string;
@@ -10,23 +10,6 @@ interface Document {
   created_at: string;
 }
 
-const mockDocuments: Document[] = [
-  {
-    document_id: "doc_001",
-    title: "订单查询FAQ",
-    doc_type: "faq",
-    chunk_count: 5,
-    created_at: "2024-03-15T10:00:00Z",
-  },
-  {
-    document_id: "doc_002",
-    title: "退货流程说明",
-    doc_type: "sop",
-    chunk_count: 8,
-    created_at: "2024-03-16T10:00:00Z",
-  },
-];
-
 const docTypeLabels: Record<string, string> = {
   faq: "常见问题",
   sop: "标准流程",
@@ -34,38 +17,78 @@ const docTypeLabels: Record<string, string> = {
 };
 
 export default function KnowledgePage() {
-  const [documents, setDocuments] = useState<Document[]>(mockDocuments);
+  const [documents, setDocuments] = useState<Document[]>([]);
   const [showUpload, setShowUpload] = useState(false);
   const [title, setTitle] = useState("");
   const [content, setContent] = useState("");
+  const [loading, setLoading] = useState(true);
+  const [reindexing, setReindexing] = useState(false);
 
-  const handleUpload = () => {
+  useEffect(() => {
+    setLoading(false);
+  }, []);
+
+  const handleUpload = async () => {
     if (title && content) {
-      const newDoc: Document = {
-        document_id: `doc_${Date.now()}`,
-        title,
-        doc_type: "faq",
-        chunk_count: content.split(".").length,
-        created_at: new Date().toISOString(),
-      };
-      setDocuments([...documents, newDoc]);
-      setShowUpload(false);
-      setTitle("");
-      setContent("");
+      try {
+        const res = await fetch("/api/kb/documents", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ title, content, doc_type: "faq" }),
+        });
+        const data = await res.json();
+        
+        const newDoc: Document = {
+          document_id: data.document_id,
+          title,
+          doc_type: data.doc_type,
+          chunk_count: data.chunk_count,
+          created_at: data.created_at,
+        };
+        setDocuments([...documents, newDoc]);
+        setShowUpload(false);
+        setTitle("");
+        setContent("");
+      } catch (error) {
+        console.error("Failed to upload document:", error);
+      }
     }
   };
+
+  const handleReindex = async () => {
+    setReindexing(true);
+    try {
+      await fetch("/api/kb/reindex", { method: "POST" });
+      alert("重建索引完成");
+    } catch (error) {
+      console.error("Failed to reindex:", error);
+    } finally {
+      setReindexing(false);
+    }
+  };
+
+  if (loading) return <div className="p-8 text-center">加载中...</div>;
 
   return (
     <div className="min-h-screen bg-gray-50">
       <header className="bg-white shadow">
         <div className="max-w-7xl mx-auto py-4 px-4 flex justify-between items-center">
           <h1 className="text-xl font-bold">知识库管理</h1>
-          <button
-            onClick={() => setShowUpload(!showUpload)}
-            className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700"
-          >
-            上传文档
-          </button>
+          <div className="flex gap-2">
+            <button
+              onClick={handleReindex}
+              disabled={reindexing}
+              className="px-4 py-2 bg-gray-600 text-white rounded-md hover:bg-gray-700 disabled:opacity-50"
+            >
+              {reindexing ? "重建中..." : "重建索引"}
+            </button>
+            <button
+              onClick={() => setShowUpload(!showUpload)}
+              className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700"
+            >
+              上传文档
+            </button>
+          </div>
         </div>
       </header>
 
@@ -125,20 +148,28 @@ export default function KnowledgePage() {
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-200">
-              {documents.map((doc) => (
-                <tr key={doc.document_id} className="hover:bg-gray-50">
-                  <td className="px-6 py-4 whitespace-nowrap">{doc.title}</td>
-                  <td className="px-6 py-4 whitespace-nowrap">
-                    <span className="px-2 py-1 text-xs font-medium bg-blue-100 text-blue-800 rounded">
-                      {docTypeLabels[doc.doc_type] || doc.doc_type}
-                    </span>
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap">{doc.chunk_count}</td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                    {new Date(doc.created_at).toLocaleString("zh-CN")}
+              {documents.length === 0 ? (
+                <tr>
+                  <td colSpan={4} className="px-6 py-8 text-center text-gray-500">
+                    暂无文档，请上传
                   </td>
                 </tr>
-              ))}
+              ) : (
+                documents.map((doc) => (
+                  <tr key={doc.document_id} className="hover:bg-gray-50">
+                    <td className="px-6 py-4 whitespace-nowrap">{doc.title}</td>
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      <span className="px-2 py-1 text-xs font-medium bg-blue-100 text-blue-800 rounded">
+                        {docTypeLabels[doc.doc_type] || doc.doc_type}
+                      </span>
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap">{doc.chunk_count}</td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                      {doc.created_at ? new Date(doc.created_at).toLocaleString("zh-CN") : "-"}
+                    </td>
+                  </tr>
+                ))
+              )}
             </tbody>
           </table>
         </div>

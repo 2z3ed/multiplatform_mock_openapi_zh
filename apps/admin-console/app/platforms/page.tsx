@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 
 interface PlatformAccount {
   id: string;
@@ -11,33 +11,6 @@ interface PlatformAccount {
   last_sync: string;
 }
 
-const mockPlatforms: PlatformAccount[] = [
-  {
-    id: "pa_001",
-    platform: "jd",
-    account_name: "京东旗舰店",
-    provider_mode: "mock",
-    status: "active",
-    last_sync: "2024-03-20T10:00:00Z",
-  },
-  {
-    id: "pa_002",
-    platform: "douyin_shop",
-    account_name: "抖音商城",
-    provider_mode: "mock",
-    status: "active",
-    last_sync: "2024-03-20T10:00:00Z",
-  },
-  {
-    id: "pa_003",
-    platform: "wecom_kf",
-    account_name: "企微客服",
-    provider_mode: "mock",
-    status: "active",
-    last_sync: "2024-03-20T10:00:00Z",
-  },
-];
-
 const platformLabels: Record<string, string> = {
   jd: "京东",
   douyin_shop: "抖音店铺",
@@ -45,17 +18,41 @@ const platformLabels: Record<string, string> = {
 };
 
 export default function PlatformsPage() {
-  const [platforms, setPlatforms] = useState<PlatformAccount[]>(mockPlatforms);
+  const [platforms, setPlatforms] = useState<PlatformAccount[]>([]);
+  const [loading, setLoading] = useState(true);
 
-  const toggleProviderMode = (id: string) => {
-    setPlatforms(
-      platforms.map((p) =>
-        p.id === id
-          ? { ...p, provider_mode: p.provider_mode === "mock" ? "real" : "mock" }
-          : p
-      )
-    );
+  useEffect(() => {
+    async function fetchPlatforms() {
+      try {
+        const res = await fetch("/api/platform-accounts");
+        const data = await res.json();
+        setPlatforms(data.items || []);
+      } catch (error) {
+        console.error("Failed to fetch platforms:", error);
+      } finally {
+        setLoading(false);
+      }
+    }
+    fetchPlatforms();
+  }, []);
+
+  const toggleProviderMode = async (id: string) => {
+    try {
+      const res = await fetch("/api/platform-accounts", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ id, action: "switch_mode" }),
+      });
+      const data = await res.json();
+      if (data.platform) {
+        setPlatforms(platforms.map(p => p.id === id ? data.platform : p));
+      }
+    } catch (error) {
+      console.error("Failed to switch mode:", error);
+    }
   };
+
+  if (loading) return <div className="p-8 text-center">加载中...</div>;
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -109,7 +106,7 @@ export default function PlatformsPage() {
                     </span>
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                    {new Date(platform.last_sync).toLocaleString("zh-CN")}
+                    {platform.last_sync ? new Date(platform.last_sync).toLocaleString("zh-CN") : "-"}
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap">
                     <button

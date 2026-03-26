@@ -1,6 +1,6 @@
 FROM node:20-alpine
 
-RUN npm install -g pnpm@8
+RUN corepack enable
 
 WORKDIR /workspace
 
@@ -10,6 +10,7 @@ COPY apps/admin-console/package.json ./apps/admin-console/
 COPY apps/agent-console/tsconfig.json ./apps/agent-console/
 COPY apps/admin-console/tsconfig.json ./apps/admin-console/
 
+RUN corepack prepare pnpm@8 --activate
 RUN pnpm install
 
 COPY apps/agent-console ./apps/agent-console

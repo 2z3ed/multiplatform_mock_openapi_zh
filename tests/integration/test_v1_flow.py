@@ -257,3 +257,47 @@ class TestAuditLogPersistence:
             assert after_count > before_count
             conv_assign_logs = [l for l in after_data["items"] if l.get("action") == "conversation_assigned"]
             assert len(conv_assign_logs) > 0
+
+    @pytest.mark.asyncio
+    async def test_ai_suggestion_to_human_send_flow(self):
+        """Test full flow: conversation -> AI suggestion -> human send -> audit log"""
+        async with httpx.AsyncClient() as client:
+            before_response = await client.get(f"{DOMAIN_SERVICE_URL}/api/audit-logs?limit=100")
+            before_count = len(before_response.json()["items"])
+
+            ai_response = await client.post(
+                f"{AI_ORCHESTRATOR_URL}/api/ai/suggest-reply",
+                json={
+                    "conversation_id": "conv_001",
+                    "message": "我想查询订单状态",
+                    "platform": "jd"
+                }
+            )
+            assert ai_response.status_code == 200
+            ai_data = ai_response.json()
+            assert "suggested_reply" in ai_data
+
+            send_response = await client.post(
+                f"{DOMAIN_SERVICE_URL}/api/audit-logs",
+                json={
+                    "action": "message_sent",
+                    "actor_type": "agent",
+                    "actor_id": "agent_001",
+                    "target_type": "message",
+                    "target_id": f"msg_{int(asyncio.get_event_loop().time() * 1000)}",
+                    "detail": "Sent message in conversation: conv_001",
+                    "detail_json": {
+                        "conversation_id": "conv_001",
+                        "content": ai_data["suggested_reply"]
+                    }
+                }
+            )
+            assert send_response.status_code == 200
+
+            after_response = await client.get(f"{DOMAIN_SERVICE_URL}/api/audit-logs?limit=100")
+            after_data = after_response.json()
+            after_count = len(after_data["items"])
+
+            assert after_count > before_count
+            msg_sent_logs = [l for l in after_data["items"] if l.get("action") == "message_sent"]
+            assert len(msg_sent_logs) > 0

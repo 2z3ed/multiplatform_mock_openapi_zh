@@ -13,36 +13,6 @@ interface Conversation {
   last_message_time: string;
 }
 
-const mockConversations: Conversation[] = [
-  {
-    id: "conv_001",
-    platform: "jd",
-    customer_nick: "用户_13800138000",
-    status: "active",
-    assigned_agent: null,
-    unread_count: 2,
-    last_message_time: "2024-03-20T15:00:00Z",
-  },
-  {
-    id: "conv_002",
-    platform: "douyin_shop",
-    customer_nick: "抖音用户_13900139000",
-    status: "active",
-    assigned_agent: "agent_001",
-    unread_count: 0,
-    last_message_time: "2024-03-20T14:30:00Z",
-  },
-  {
-    id: "conv_003",
-    platform: "wecom_kf",
-    customer_nick: "微信用户_abc",
-    status: "waiting",
-    assigned_agent: null,
-    unread_count: 1,
-    last_message_time: "2024-03-20T16:00:00Z",
-  },
-];
-
 const platformLabels: Record<string, string> = {
   jd: "京东",
   douyin_shop: "抖音",
@@ -57,10 +27,24 @@ const statusLabels: Record<string, string> = {
 
 export default function ConversationsPage() {
   const [conversations, setConversations] = useState<Conversation[]>([]);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    setConversations(mockConversations);
+    async function fetchConversations() {
+      try {
+        const res = await fetch("/api/conversations");
+        const data = await res.json();
+        setConversations(data.items || []);
+      } catch (error) {
+        console.error("Failed to fetch conversations:", error);
+      } finally {
+        setLoading(false);
+      }
+    }
+    fetchConversations();
   }, []);
+
+  if (loading) return <div className="p-8 text-center">加载中...</div>;
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -110,7 +94,7 @@ export default function ConversationsPage() {
                     )}
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                    {new Date(conv.last_message_time).toLocaleString("zh-CN")}
+                    {conv.last_message_time ? new Date(conv.last_message_time).toLocaleString("zh-CN") : "-"}
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap">
                     <Link
