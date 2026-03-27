@@ -44,6 +44,7 @@ def get_audit_logs(
 @router.post("")
 def create_audit_log(
     log: AuditLogCreate,
+    db: Session = Depends(get_db),
     audit_service: AuditService = Depends(get_audit_service)
 ) -> dict:
     result = audit_service.log_event(

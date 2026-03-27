@@ -31,7 +31,7 @@ services:
       dockerfile: infra/docker/python-service.Dockerfile
     working_dir: /workspace/apps/api-gateway
     env_file:
-      - .env.example
+      - .env
     environment:
       PYTHONPATH: /workspace/apps/api-gateway:/workspace/packages/shared-config:/workspace/packages/shared-db:/workspace/packages/domain-models:/workspace/packages/provider-sdk
     command: ["python", "-m", "uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000"]
@@ -51,7 +51,7 @@ services:
       dockerfile: infra/docker/python-service.Dockerfile
     working_dir: /workspace/apps/domain-service
     env_file:
-      - .env.example
+      - .env
     environment:
       PYTHONPATH: /workspace/apps/domain-service:/workspace:/workspace/packages/shared-config:/workspace/packages/shared-db:/workspace/packages/domain-models:/workspace/packages/provider-sdk
     command: ["python", "-m", "uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8001"]
@@ -71,7 +71,7 @@ services:
       dockerfile: infra/docker/python-service.Dockerfile
     working_dir: /workspace/apps/ai-orchestrator
     env_file:
-      - .env.example
+      - .env
     environment:
       PYTHONPATH: /workspace/apps/ai-orchestrator:/workspace:/workspace/packages/shared-config:/workspace/packages/shared-db:/workspace/packages/domain-models:/workspace/packages/provider-sdk
     command: ["python", "-m", "uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8002"]
@@ -91,7 +91,7 @@ services:
       dockerfile: infra/docker/python-service.Dockerfile
     working_dir: /workspace/apps/knowledge-service
     env_file:
-      - .env.example
+      - .env
     environment:
       PYTHONPATH: /workspace/apps/knowledge-service:/workspace/packages/shared-config:/workspace/packages/shared-db:/workspace/packages/domain-models:/workspace/packages/provider-sdk
     command: ["python", "-m", "uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8003"]
@@ -111,7 +111,7 @@ services:
       dockerfile: infra/docker/python-service.Dockerfile
     working_dir: /workspace/apps/mock-platform-server
     env_file:
-      - .env.example
+      - .env
     environment:
       PYTHONPATH: /workspace/apps/mock-platform-server:/workspace/packages/shared-config:/workspace/packages/shared-db:/workspace/packages/domain-models:/workspace/packages/provider-sdk
     command: ["python", "-m", "uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8004"]

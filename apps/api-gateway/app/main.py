@@ -200,3 +200,14 @@ async def get_audit_logs(request: Request):
             params=request.query_params
         )
     return JSONResponse(content=response.json(), status_code=response.status_code)
+
+
+@app.post("/api/audit-logs")
+async def create_audit_log(request: Request):
+    body = await request.json()
+    async with httpx.AsyncClient() as client:
+        response = await client.post(
+            f"{BACKEND_SERVICES['domain-service']}/api/audit-logs",
+            json=body
+        )
+    return JSONResponse(content=response.json(), status_code=response.status_code)
