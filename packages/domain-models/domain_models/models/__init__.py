@@ -3,6 +3,7 @@ from domain_models.models.ai_suggestion import AISuggestion
 from domain_models.models.audit_log import AuditLog
 from domain_models.models.conversation import Conversation
 from domain_models.models.customer import Customer
+from domain_models.models.customer_profile import CustomerProfile
 from domain_models.models.customer_tag import CustomerTag
 from domain_models.models.follow_up_task import FollowUpTask
 from domain_models.models.kb_chunk import KBChunk
@@ -15,6 +16,7 @@ from domain_models.models.shipment_snapshot import ShipmentSnapshot
 __all__ = [
     "PlatformAccount",
     "Customer",
+    "CustomerProfile",
     "CustomerTag",
     "Conversation",
     "Message",
