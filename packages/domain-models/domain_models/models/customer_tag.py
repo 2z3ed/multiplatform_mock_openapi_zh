@@ -12,5 +12,5 @@ class CustomerTag(Base, TimestampMixin):
     customer_id: Mapped[int] = mapped_column(ForeignKey("customer.id"), nullable=False)
     tag_type: Mapped[str] = mapped_column(String(30), nullable=False)
     tag_value: Mapped[str] = mapped_column(String(100), nullable=False)
-    source: Mapped[str] = mapped_column(String(30), nullable=False, default="rule")
+    source: Mapped[str] = mapped_column(String(30), nullable=False, default="manual")
     extra_json: Mapped[dict | None] = mapped_column(JSON, nullable=True)
