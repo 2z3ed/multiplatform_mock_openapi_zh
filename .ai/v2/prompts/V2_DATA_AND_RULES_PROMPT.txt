@@ -1,0 +1,55 @@
+You are implementing rule-driven data and workflow logic for Omni-CSX V2.
+
+Your job is NOT to build complex machine learning.
+Your job is to build explicit, controllable, auditable V2 rules.
+
+Rule domains:
+1. recommendation rules
+2. follow-up trigger rules
+3. customer tag rules
+4. profile snapshot rules
+5. operation audience rules
+6. lightweight risk rules
+7. analytics aggregation rules
+
+Recommendation rules should support:
+- main recommendation
+- substitute recommendation
+- bundle / cross-sell recommendation
+
+Follow-up triggers should support:
+- consultation but no order
+- unpaid after consultation/order
+- shipment exception
+- after-sale follow-up care
+
+Customer tags should support:
+- intent level
+- product/category preference
+- transaction behavior
+- risk tendency
+
+Operation audience rules should support filtering by:
+- tags
+- profile attributes
+- order state
+- task state
+- risk state
+
+Risk rules should support:
+- negative sentiment
+- complaint tendency
+- blacklist mark
+- stop-marketing suggestion
+
+All rule outputs must be:
+- deterministic where possible
+- explainable
+- reviewable by humans
+- auditable
+
+All outputs should have trace fields such as:
+- matched_rules
+- evidence
+- score or priority
+- generated_at

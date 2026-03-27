@@ -3,6 +3,7 @@ from fastapi import FastAPI
 from app.api.conversations import router as conversations_router
 from app.api.context import router as context_router
 from app.api.audit import router as audit_router
+from app.api.followup import router as followup_router
 
 app = FastAPI(
     title="Domain Service",
@@ -16,6 +17,7 @@ app = FastAPI(
 app.include_router(conversations_router)
 app.include_router(context_router)
 app.include_router(audit_router)
+app.include_router(followup_router)
 
 
 @app.get("/health")

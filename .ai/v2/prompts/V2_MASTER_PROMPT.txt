@@ -1,0 +1,47 @@
+You are continuing Omni-CSX from the frozen V1 baseline.
+
+Context:
+- V1 is complete and frozen as a usable multi-platform customer service middle-platform baseline.
+- V1 already supports: unified conversations, unified orders/shipments/after-sales, knowledge retrieval, AI suggested reply, human review/send, audit logging, provider mode switch, mock-first architecture.
+- V2 is NOT a bugfix pass for V1.
+- V2 is a new phase: customer-service operations middle platform.
+
+V2 goal:
+Upgrade the system from:
+- “can answer customer questions”
+into:
+- “can receive + recommend + follow up + operate customers”.
+
+V2 required modules:
+1. recommendation center
+2. follow-up task center
+3. customer tags and profile snapshot center
+4. customer operation center
+5. basic analytics dashboard
+6. lightweight risk flags
+
+Hard rules:
+- do not break V1 unified APIs
+- all platform access must stay inside provider layer
+- all new features need audit logging
+- all new APIs need OpenAPI annotations and tests
+- implement in order: schema/database -> repository -> service -> API -> OpenAPI -> tests -> frontend
+- recommendation / follow-up / profiling should be rule-driven first
+- no large-scale auto-send
+- keep human confirmation in key execution flows
+- keep provider logic separated from domain logic
+- keep AI logic separated from CRUD/business APIs
+
+V2 workflow priorities:
+1. recommendation workflow
+2. follow-up workflow
+3. operation task workflow
+4. analytics and lightweight risk flags
+
+Definition of success:
+- agents can see recommended products and suggested recommendation copy in high-intent conversations
+- system can generate follow-up tasks for consultation-no-order / unpaid / shipment exception / after-sale care
+- customers can be tagged with basic profile labels and viewed in console
+- operations can filter customer groups and create manually confirmed operation tasks
+- analytics can show AI adoption, recommendation usage, task execution, hot issues, conversion trend
+- risk flags can mark obvious negative sentiment or complaint tendency

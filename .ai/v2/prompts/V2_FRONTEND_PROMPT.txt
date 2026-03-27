@@ -1,0 +1,44 @@
+You are implementing Omni-CSX V2 frontend from the frozen V1 baseline.
+
+Focus only on frontend work.
+
+V2 UI goal:
+Upgrade the existing customer-service workbench into an operations-aware console.
+
+Required additions:
+1. Agent console
+- recommendation panel in conversation detail
+- follow-up task panel
+- customer tags display
+- customer profile snapshot drawer or panel
+- risk badge / risk reminder area
+2. Admin console
+- operation campaigns page
+- audience preview page
+- customer tags/profile management page
+- analytics dashboard page
+- follow-up task management page
+
+UI constraints:
+- do not redesign the whole app
+- do not break V1 main pages
+- do not implement V3 dashboards or quality center pages
+- keep layout pragmatic and usable
+- keep human confirmation visible in key flows
+- recommendation/follow-up/campaign execution should show preview-first behavior
+- risk should be reminder-oriented, not full case management
+
+Frontend implementation order:
+1. data hooks / API clients
+2. page state models
+3. panels and cards
+4. pages
+5. loading / error / empty states
+6. tests if frontend test setup already exists
+
+Important UX principles:
+- recommendation must show product + reason + suggested copy
+- follow-up must show trigger reason + task status + suggested copy
+- customer profile must show tags grouped by type
+- operation tasks must require preview and manual confirmation
+- analytics should show only core V2 metrics

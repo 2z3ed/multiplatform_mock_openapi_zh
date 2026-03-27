@@ -1,0 +1,124 @@
+V2 TASK BREAKDOWN
+
+Task Group 1. Database and domain expansion
+1. Add tables:
+- customer_tag
+- customer_profile_snapshot
+- recommendation_record
+- follow_up_task
+- operation_campaign
+- operation_task
+- risk_flag
+- analytics_daily_snapshot
+2. Add ORM models and DTO schemas
+3. Add migrations
+4. Add audit event enums for new actions
+
+Task Group 2. Recommendation center
+1. Add recommendation domain service
+2. Add rule engine for:
+- main recommendation
+- substitute recommendation
+- bundle recommendation
+3. Add recommendation reason generator
+4. Add recommendation copy generator
+5. Add APIs:
+- GET /recommendations/by-conversation/{id}
+- POST /recommendations/preview
+- POST /recommendations/confirm
+6. Add service tests and API tests
+
+Task Group 3. Follow-up task center
+1. Add follow-up rules:
+- consulted but no order
+- unpaid
+- shipment exception
+- after-sale follow-up
+2. Add task generation service
+3. Add suggestion copy generation for follow-up
+4. Add APIs:
+- GET /follow-up/tasks
+- POST /follow-up/tasks/generate
+- POST /follow-up/tasks/{id}/execute-preview
+- POST /follow-up/tasks/{id}/complete
+5. Add audit logs and tests
+
+Task Group 4. Customer tags and profile
+1. Add tag rules:
+- intent tag
+- product preference tag
+- transaction tag
+- risk tag
+2. Add profile snapshot service
+3. Add manual correction API
+4. Add APIs:
+- GET /customers/{id}/tags
+- POST /customers/{id}/tags/refresh
+- POST /customers/{id}/tags/manual-update
+- GET /customers/{id}/profile-snapshot
+5. Add workbench side panel integration
+
+Task Group 5. Customer operation center
+1. Add group filter service
+2. Add operation task service
+3. Add manual confirmation execution flow
+4. Add campaign/template entities
+5. Add APIs:
+- POST /operations/audience/preview
+- POST /operations/campaigns
+- POST /operations/campaigns/{id}/generate-tasks
+- POST /operations/tasks/{id}/confirm
+6. No large-scale auto-send implementation
+
+Task Group 6. Analytics dashboard
+1. Add daily metrics aggregation jobs
+2. Metrics must include:
+- conversation volume
+- first response time
+- AI suggestion adoption rate
+- hot issues
+- hot products
+- recommendation usage rate
+- follow-up task execution rate
+- conversion trend
+3. Add APIs:
+- GET /analytics/overview
+- GET /analytics/hot-issues
+- GET /analytics/hot-products
+- GET /analytics/conversion-trend
+
+Task Group 7. Lightweight risk flags
+1. Add basic risk rules:
+- negative sentiment
+- complaint tendency
+- blacklist mark
+- stop-marketing suggestion
+2. Add risk flag service
+3. Add APIs:
+- GET /risk-flags/by-conversation/{id}
+- POST /risk-flags/evaluate
+4. Add workbench badge display
+
+Task Group 8. Frontend upgrade
+1. Agent console:
+- recommendation panel
+- follow-up panel
+- customer profile entry
+- risk badge
+2. Admin console:
+- operations page
+- analytics page
+- tags/profile page
+3. Keep V2 UI focused and usable
+
+Task Group 9. Required tests
+At minimum add:
+- recommendation service test
+- follow-up rule service test
+- customer tag/profile service test
+- operation task service test
+- analytics aggregation test
+- risk flag service test
+- API tests for all major new routes
+- integration test: conversation -> recommendation preview
+- integration test: order event -> follow-up task generation

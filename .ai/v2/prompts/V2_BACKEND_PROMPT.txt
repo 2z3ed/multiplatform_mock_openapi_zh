@@ -1,0 +1,64 @@
+You are implementing Omni-CSX V2 backend from the frozen V1 baseline.
+
+Focus only on backend changes.
+
+Required backend scope:
+- schema / database migration
+- ORM models
+- repositories
+- domain services
+- API routes
+- OpenAPI docs
+- tests
+- audit logging
+
+Must add these modules:
+1. recommendation center
+2. follow-up task center
+3. customer tags and profile snapshot
+4. operation task center
+5. analytics aggregation
+6. lightweight risk flags
+
+Backend constraints:
+- preserve V1 unified interfaces
+- keep provider access only in provider layer
+- keep AI logic isolated from CRUD/business APIs
+- recommendation and profiling are rule-driven first
+- no complex ML system
+- no ERP deep integration in V2
+- no large-scale auto-send
+- every new route must have request schema, response schema, validation, error handling
+- every new feature must include at least one service test and one API test
+- any feature without audit logging is incomplete
+
+Recommended implementation order:
+1. migrations
+2. domain models
+3. repository layer
+4. service layer
+5. route layer
+6. OpenAPI cleanup
+7. tests
+
+Key data objects to add:
+- RecommendationRecord
+- FollowUpTask
+- CustomerTag
+- CustomerProfileSnapshot
+- OperationCampaign
+- OperationTask
+- RiskFlag
+- AnalyticsDailySnapshot
+
+Key audit events to add:
+- recommendation_generated
+- recommendation_confirmed
+- follow_up_task_generated
+- follow_up_task_completed
+- customer_tags_refreshed
+- customer_profile_updated
+- operation_campaign_created
+- operation_task_confirmed
+- risk_flag_generated
+- analytics_snapshot_built
