@@ -8,8 +8,10 @@ router = APIRouter(prefix="/api/conversations", tags=["conversations"])
 MOCK_CONVERSATIONS = [
     {
         "id": "conv_001",
+        "conversation_pk": 1,
         "platform": "jd",
         "customer_id": "customer_001",
+        "customer_pk": 1,
         "customer_nick": "用户_13800138000",
         "status": "active",
         "assigned_agent": None,
@@ -19,8 +21,10 @@ MOCK_CONVERSATIONS = [
     },
     {
         "id": "conv_002",
+        "conversation_pk": 2,
         "platform": "douyin_shop",
         "customer_id": "customer_002",
+        "customer_pk": 2,
         "customer_nick": "抖音用户_13900139000",
         "status": "active",
         "assigned_agent": "agent_001",
@@ -30,8 +34,10 @@ MOCK_CONVERSATIONS = [
     },
     {
         "id": "conv_003",
+        "conversation_pk": 3,
         "platform": "wecom_kf",
         "customer_id": "customer_003",
+        "customer_pk": 3,
         "customer_nick": "微信用户_abc",
         "status": "waiting",
         "assigned_agent": None,

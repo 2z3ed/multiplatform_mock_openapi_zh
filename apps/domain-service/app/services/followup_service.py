@@ -4,6 +4,7 @@ from typing import Optional
 from sqlalchemy.orm import Session
 
 from app.repositories.followup_task_repository import FollowUpTaskRepository
+from app.services.audit_service import AuditService
 
 
 class FollowUpTaskService:
@@ -22,6 +23,7 @@ class FollowUpTaskService:
     def __init__(self, db_session: Session):
         self._db_session = db_session
         self._repo = FollowUpTaskRepository(db_session)
+        self._audit_service = AuditService(db_session=db_session)
 
     def _to_dict(self, task) -> dict:
         return {
@@ -43,6 +45,55 @@ class FollowUpTaskService:
             "created_at": task.created_at.isoformat() if task.created_at else None,
             "updated_at": task.updated_at.isoformat() if task.updated_at else None,
         }
+
+    def _log_audit(self, task, action: str, extra_json: Optional[dict] = None):
+        detail_json = {
+            "task_id": str(task.id),
+            "customer_id": str(task.customer_id),
+            "conversation_id": str(task.conversation_id) if task.conversation_id else "",
+            "order_id": task.order_id or "",
+            "task_type": task.task_type,
+            "status": task.status
+        }
+        if extra_json:
+            detail_json.update(extra_json)
+        
+        if action == "followup_task_created":
+            self._audit_service.followup_task_created(
+                task_id=str(task.id),
+                customer_id=str(task.customer_id),
+                conversation_id=str(task.conversation_id) if task.conversation_id else "",
+                order_id=task.order_id or "",
+                task_type=task.task_type,
+                status=task.status
+            )
+        elif action == "followup_task_updated":
+            self._audit_service.followup_task_updated(
+                task_id=str(task.id),
+                customer_id=str(task.customer_id),
+                conversation_id=str(task.conversation_id) if task.conversation_id else "",
+                order_id=task.order_id or "",
+                task_type=task.task_type,
+                status=task.status
+            )
+        elif action == "followup_task_executed":
+            self._audit_service.followup_task_executed(
+                task_id=str(task.id),
+                customer_id=str(task.customer_id),
+                conversation_id=str(task.conversation_id) if task.conversation_id else "",
+                order_id=task.order_id or "",
+                task_type=task.task_type,
+                completed_by=extra_json.get("completed_by", "") if extra_json else ""
+            )
+        elif action == "followup_task_closed":
+            self._audit_service.followup_task_closed(
+                task_id=str(task.id),
+                customer_id=str(task.customer_id),
+                conversation_id=str(task.conversation_id) if task.conversation_id else "",
+                order_id=task.order_id or "",
+                task_type=task.task_type,
+                completed_by=extra_json.get("completed_by", "") if extra_json else ""
+            )
 
     def get_task(self, task_id: int) -> Optional[dict]:
         task = self._repo.get_by_id(task_id)
@@ -112,6 +163,9 @@ class FollowUpTaskService:
             due_date=due_date,
             extra_json=extra_json
         )
+        
+        self._log_audit(task, "followup_task_created")
+        
         return self._to_dict(task)
 
     def update_task(self, task_id: int, updates: dict) -> Optional[dict]:
@@ -125,6 +179,9 @@ class FollowUpTaskService:
         task = self._repo.update(task_id, filtered_updates)
         if task is None:
             return None
+        
+        self._log_audit(task, "followup_task_updated")
+        
         return self._to_dict(task)
 
     def execute_task(self, task_id: int, completed_by: str) -> Optional[dict]:
@@ -142,6 +199,9 @@ class FollowUpTaskService:
         })
         if result is None:
             return None
+        
+        self._log_audit(result, "followup_task_executed", {"completed_by": completed_by})
+        
         return self._to_dict(result)
 
     def close_task(self, task_id: int, completed_by: str) -> Optional[dict]:
@@ -159,4 +219,7 @@ class FollowUpTaskService:
         })
         if result is None:
             return None
+        
+        self._log_audit(result, "followup_task_closed", {"completed_by": completed_by})
+        
         return self._to_dict(result)

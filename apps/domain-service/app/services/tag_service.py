@@ -3,6 +3,7 @@ from typing import Optional
 from sqlalchemy.orm import Session
 
 from app.repositories.customer_tag_repository import CustomerTagRepository
+from app.services.audit_service import AuditService
 
 
 class CustomerTagService:
@@ -14,6 +15,7 @@ class CustomerTagService:
     def __init__(self, db_session: Session):
         self._db_session = db_session
         self._repo = CustomerTagRepository(db_session)
+        self._audit_service = AuditService(db_session=db_session)
 
     def _to_dict(self, tag) -> dict:
         return {
@@ -63,7 +65,32 @@ class CustomerTagService:
             source=source,
             extra_json=extra_json
         )
+        
+        self._audit_service.customer_tag_created(
+            tag_id=str(tag.id),
+            customer_id=str(customer_id),
+            tag_type=tag_type,
+            tag_value=tag_value
+        )
+        
         return self._to_dict(tag)
 
     def delete_tag(self, tag_id: int) -> bool:
-        return self._repo.delete(tag_id)
+        tag = self._repo.get_by_id(tag_id)
+        if tag is None:
+            return False
+        
+        customer_id = tag.customer_id
+        tag_type = tag.tag_type
+        tag_value = tag.tag_value
+        
+        result = self._repo.delete(tag_id)
+        if result:
+            self._audit_service.customer_tag_deleted(
+                tag_id=str(tag_id),
+                customer_id=str(customer_id),
+                tag_type=tag_type,
+                tag_value=tag_value
+            )
+        
+        return result

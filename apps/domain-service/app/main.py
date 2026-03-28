@@ -6,6 +6,10 @@ from app.api.audit import router as audit_router
 from app.api.followup import router as followup_router
 from app.api.tags import router as tags_router
 from app.api.profile import router as profile_router
+from app.api.recommendation import router as recommendation_router, conversation_router
+from app.api.operation_campaign import router as operation_campaign_router
+from app.api.analytics import router as analytics_router
+from app.api.risk_flag import router as risk_flag_router
 
 app = FastAPI(
     title="Domain Service",
@@ -22,6 +26,11 @@ app.include_router(audit_router)
 app.include_router(followup_router)
 app.include_router(tags_router)
 app.include_router(profile_router)
+app.include_router(recommendation_router)
+app.include_router(conversation_router)
+app.include_router(operation_campaign_router)
+app.include_router(analytics_router)
+app.include_router(risk_flag_router)
 
 
 @app.get("/health")

@@ -4,6 +4,7 @@ from typing import Optional
 from sqlalchemy.orm import Session
 
 from app.repositories.customer_profile_repository import CustomerProfileRepository
+from app.services.audit_service import AuditService
 
 
 class CustomerProfileService:
@@ -14,6 +15,7 @@ class CustomerProfileService:
     def __init__(self, db_session: Session):
         self._db_session = db_session
         self._repo = CustomerProfileRepository(db_session)
+        self._audit_service = AuditService(db_session=db_session)
 
     def _to_dict(self, profile) -> dict:
         return {
@@ -59,6 +61,14 @@ class CustomerProfileService:
             avg_order_value=avg_order_value,
             extra_json=extra_json
         )
+        
+        self._audit_service.customer_profile_created(
+            customer_id=str(customer_id),
+            total_orders=total_orders,
+            total_spent=str(total_spent),
+            avg_order_value=str(avg_order_value)
+        )
+        
         return self._to_dict(profile)
 
     def update_profile(self, customer_id: int, updates: dict) -> Optional[dict]:
@@ -76,7 +86,25 @@ class CustomerProfileService:
         profile = self._repo.update(customer_id, filtered_updates)
         if profile is None:
             return None
+        
+        self._audit_service.customer_profile_updated(
+            customer_id=str(customer_id),
+            total_orders=profile.total_orders,
+            total_spent=str(profile.total_spent),
+            avg_order_value=str(profile.avg_order_value)
+        )
+        
         return self._to_dict(profile)
 
     def delete_profile(self, customer_id: int) -> bool:
-        return self._repo.delete(customer_id)
+        profile = self._repo.get_by_customer_id(customer_id)
+        if profile is None:
+            return False
+        
+        result = self._repo.delete(customer_id)
+        if result:
+            self._audit_service.customer_profile_deleted(
+                customer_id=str(customer_id)
+            )
+        
+        return result

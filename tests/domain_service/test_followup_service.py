@@ -264,3 +264,189 @@ class TestFollowUpTaskService:
         service = FollowUpTaskService(db_session=db_session)
         result = service.close_task(9999, "agent_001")
         assert result is None
+
+
+class TestFollowUpTaskAuditLogs:
+    """Test followup task audit logging"""
+
+    def test_create_task_logs_audit(self, db_session, setup_data):
+        """Test creating task writes followup_task_created audit"""
+        service = FollowUpTaskService(db_session=db_session)
+        service.create_task(
+            customer_id=1,
+            task_type="consultation_no_order",
+            title="Test Task"
+        )
+
+        from domain_models.models.audit_log import AuditLog
+        audit_logs = db_session.query(AuditLog).filter(
+            AuditLog.action == "followup_task_created"
+        ).all()
+        
+        assert len(audit_logs) == 1
+        assert audit_logs[0].detail_json["task_type"] == "consultation_no_order"
+
+    def test_create_task_failure_does_not_log_audit(self, db_session, setup_data):
+        """Test creating task with invalid task_type does not write audit"""
+        service = FollowUpTaskService(db_session=db_session)
+        service.create_task(
+            customer_id=1,
+            task_type="invalid_type",
+            title="Test Task"
+        )
+
+        from domain_models.models.audit_log import AuditLog
+        audit_logs = db_session.query(AuditLog).filter(
+            AuditLog.action == "followup_task_created"
+        ).all()
+        
+        assert len(audit_logs) == 0
+
+    def test_update_task_logs_audit(self, db_session, setup_data):
+        """Test updating task writes followup_task_updated audit"""
+        service = FollowUpTaskService(db_session=db_session)
+        created = service.create_task(
+            customer_id=1,
+            task_type="consultation_no_order",
+            title="Original Title"
+        )
+
+        service.update_task(created["id"], {"title": "Updated Title"})
+
+        from domain_models.models.audit_log import AuditLog
+        audit_logs = db_session.query(AuditLog).filter(
+            AuditLog.action == "followup_task_updated"
+        ).all()
+        
+        assert len(audit_logs) == 1
+        assert audit_logs[0].detail_json["task_type"] == "consultation_no_order"
+
+    def test_update_nonexistent_task_does_not_log_audit(self, db_session, setup_data):
+        """Test updating non-existent task does not write audit"""
+        service = FollowUpTaskService(db_session=db_session)
+        service.update_task(9999, {"title": "Updated"})
+
+        from domain_models.models.audit_log import AuditLog
+        audit_logs = db_session.query(AuditLog).filter(
+            AuditLog.action == "followup_task_updated"
+        ).all()
+        
+        assert len(audit_logs) == 0
+
+    def test_update_task_invalid_priority_does_not_log_audit(self, db_session, setup_data):
+        """Test updating with invalid priority does not write audit"""
+        service = FollowUpTaskService(db_session=db_session)
+        created = service.create_task(
+            customer_id=1,
+            task_type="consultation_no_order",
+            title="Test Task"
+        )
+
+        service.update_task(created["id"], {"priority": "invalid"})
+
+        from domain_models.models.audit_log import AuditLog
+        audit_logs = db_session.query(AuditLog).filter(
+            AuditLog.action == "followup_task_updated"
+        ).all()
+        
+        assert len(audit_logs) == 0
+
+    def test_execute_task_logs_audit(self, db_session, setup_data):
+        """Test executing task writes followup_task_executed audit"""
+        service = FollowUpTaskService(db_session=db_session)
+        created = service.create_task(
+            customer_id=1,
+            task_type="consultation_no_order",
+            title="Test Task"
+        )
+
+        service.execute_task(created["id"], "agent_001")
+
+        from domain_models.models.audit_log import AuditLog
+        audit_logs = db_session.query(AuditLog).filter(
+            AuditLog.action == "followup_task_executed"
+        ).all()
+        
+        assert len(audit_logs) == 1
+        assert audit_logs[0].detail_json["completed_by"] == "agent_001"
+
+    def test_execute_nonexistent_task_does_not_log_audit(self, db_session):
+        """Test executing non-existent task does not write audit"""
+        service = FollowUpTaskService(db_session=db_session)
+        service.execute_task(9999, "agent_001")
+
+        from domain_models.models.audit_log import AuditLog
+        audit_logs = db_session.query(AuditLog).filter(
+            AuditLog.action == "followup_task_executed"
+        ).all()
+        
+        assert len(audit_logs) == 0
+
+    def test_execute_not_pending_task_does_not_log_audit(self, db_session, setup_data):
+        """Test executing non-pending task does not write audit"""
+        service = FollowUpTaskService(db_session=db_session)
+        created = service.create_task(
+            customer_id=1,
+            task_type="consultation_no_order",
+            title="Test Task"
+        )
+
+        service.execute_task(created["id"], "agent_001")
+        service.execute_task(created["id"], "agent_001")
+
+        from domain_models.models.audit_log import AuditLog
+        audit_logs = db_session.query(AuditLog).filter(
+            AuditLog.action == "followup_task_executed"
+        ).all()
+        
+        assert len(audit_logs) == 1
+
+    def test_close_task_logs_audit(self, db_session, setup_data):
+        """Test closing task writes followup_task_closed audit"""
+        service = FollowUpTaskService(db_session=db_session)
+        created = service.create_task(
+            customer_id=1,
+            task_type="consultation_no_order",
+            title="Test Task"
+        )
+
+        service.close_task(created["id"], "agent_001")
+
+        from domain_models.models.audit_log import AuditLog
+        audit_logs = db_session.query(AuditLog).filter(
+            AuditLog.action == "followup_task_closed"
+        ).all()
+        
+        assert len(audit_logs) == 1
+        assert audit_logs[0].detail_json["completed_by"] == "agent_001"
+
+    def test_close_nonexistent_task_does_not_log_audit(self, db_session):
+        """Test closing non-existent task does not write audit"""
+        service = FollowUpTaskService(db_session=db_session)
+        service.close_task(9999, "agent_001")
+
+        from domain_models.models.audit_log import AuditLog
+        audit_logs = db_session.query(AuditLog).filter(
+            AuditLog.action == "followup_task_closed"
+        ).all()
+        
+        assert len(audit_logs) == 0
+
+    def test_close_not_pending_task_does_not_log_audit(self, db_session, setup_data):
+        """Test closing non-pending task does not write audit"""
+        service = FollowUpTaskService(db_session=db_session)
+        created = service.create_task(
+            customer_id=1,
+            task_type="consultation_no_order",
+            title="Test Task"
+        )
+
+        service.close_task(created["id"], "agent_001")
+        service.close_task(created["id"], "agent_001")
+
+        from domain_models.models.audit_log import AuditLog
+        audit_logs = db_session.query(AuditLog).filter(
+            AuditLog.action == "followup_task_closed"
+        ).all()
+        
+        assert len(audit_logs) == 1

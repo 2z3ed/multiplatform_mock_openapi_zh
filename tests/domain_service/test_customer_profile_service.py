@@ -9,6 +9,7 @@ from sqlalchemy.orm import sessionmaker
 
 from domain_models.models.customer_profile import CustomerProfile
 from domain_models.models.customer import Customer
+from domain_models.models.audit_log import AuditLog
 from shared_db.base import Base
 from app.services.profile_service import CustomerProfileService
 
@@ -187,3 +188,120 @@ class TestCustomerProfileService:
         service = CustomerProfileService(db_session=db_session)
         result = service.delete_profile(9999)
         assert result is False
+
+
+class TestCustomerProfileAuditLogs:
+    """Test customer profile audit logging"""
+
+    def test_create_profile_logs_audit(self, db_session, setup_data):
+        """Test creating profile writes customer_profile_created audit"""
+        service = CustomerProfileService(db_session=db_session)
+        service.create_profile(
+            customer_id=1,
+            total_orders=10,
+            total_spent=Decimal("1000.00"),
+            avg_order_value=Decimal("100.00")
+        )
+
+        audit_logs = db_session.query(AuditLog).filter(
+            AuditLog.action == "customer_profile_created"
+        ).all()
+        
+        assert len(audit_logs) == 1
+        assert audit_logs[0].target_id == "1"
+        assert audit_logs[0].detail_json["total_orders"] == 10
+
+    def test_create_profile_failure_does_not_log_audit(self, db_session, setup_data):
+        """Test creating profile with invalid values does not write audit"""
+        service = CustomerProfileService(db_session=db_session)
+        service.create_profile(
+            customer_id=1,
+            total_orders=-1,
+            total_spent=Decimal("1000.00"),
+            avg_order_value=Decimal("100.00")
+        )
+
+        audit_logs = db_session.query(AuditLog).filter(
+            AuditLog.action == "customer_profile_created"
+        ).all()
+        
+        assert len(audit_logs) == 0
+
+    def test_update_profile_logs_audit(self, db_session, setup_data):
+        """Test updating profile writes customer_profile_updated audit"""
+        service = CustomerProfileService(db_session=db_session)
+        service.create_profile(
+            customer_id=1,
+            total_orders=5,
+            total_spent=Decimal("500.00"),
+            avg_order_value=Decimal("100.00")
+        )
+
+        service.update_profile(1, {"total_orders": 10, "total_spent": Decimal("1000.00")})
+
+        audit_logs = db_session.query(AuditLog).filter(
+            AuditLog.action == "customer_profile_updated"
+        ).all()
+        
+        assert len(audit_logs) == 1
+        assert audit_logs[0].target_id == "1"
+        assert audit_logs[0].detail_json["total_orders"] == 10
+
+    def test_update_nonexistent_profile_does_not_log_audit(self, db_session, setup_data):
+        """Test updating non-existent profile does not write audit"""
+        service = CustomerProfileService(db_session=db_session)
+        service.update_profile(9999, {"total_orders": 10})
+
+        audit_logs = db_session.query(AuditLog).filter(
+            AuditLog.action == "customer_profile_updated"
+        ).all()
+        
+        assert len(audit_logs) == 0
+
+    def test_update_profile_invalid_values_does_not_log_audit(self, db_session, setup_data):
+        """Test updating with invalid values does not write audit"""
+        service = CustomerProfileService(db_session=db_session)
+        service.create_profile(
+            customer_id=1,
+            total_orders=5,
+            total_spent=Decimal("500.00"),
+            avg_order_value=Decimal("100.00")
+        )
+
+        service.update_profile(1, {"total_orders": -1})
+
+        audit_logs = db_session.query(AuditLog).filter(
+            AuditLog.action == "customer_profile_updated"
+        ).all()
+        
+        assert len(audit_logs) == 0
+
+    def test_delete_profile_logs_audit(self, db_session, setup_data):
+        """Test deleting profile writes customer_profile_deleted audit"""
+        service = CustomerProfileService(db_session=db_session)
+        service.create_profile(
+            customer_id=1,
+            total_orders=5,
+            total_spent=Decimal("500.00"),
+            avg_order_value=Decimal("100.00")
+        )
+
+        service.delete_profile(1)
+
+        audit_logs = db_session.query(AuditLog).filter(
+            AuditLog.action == "customer_profile_deleted"
+        ).all()
+        
+        assert len(audit_logs) == 1
+        assert audit_logs[0].target_id == "1"
+
+    def test_delete_nonexistent_profile_does_not_log_audit(self, db_session, setup_data):
+        """Test deleting non-existent profile does not write audit"""
+        service = CustomerProfileService(db_session=db_session)
+        service.delete_profile(9999)
+
+        audit_logs = db_session.query(AuditLog).filter(
+            AuditLog.action == "customer_profile_deleted"
+        ).all()
+        
+        assert len(audit_logs) == 0

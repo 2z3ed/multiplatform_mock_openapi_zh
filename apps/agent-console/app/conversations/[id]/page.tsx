@@ -2,6 +2,10 @@
 
 import { useState, useEffect, use } from "react";
 import { useParams } from "next/navigation";
+import FollowupPanel from "./components/FollowupPanel";
+import RecommendationPanel from "./components/RecommendationPanel";
+import RiskFlagPanel from "./components/RiskFlagPanel";
+import CustomerProfilePanel from "./components/CustomerProfilePanel";
 
 interface Message {
   id: string;
@@ -13,7 +17,10 @@ interface Message {
 
 interface Conversation {
   id: string;
+  conversation_pk?: number;
   platform: string;
+  customer_id?: string;
+  customer_pk?: number;
   customer_nick: string;
   status: string;
   assigned_agent: string | null;
@@ -448,6 +455,18 @@ export default function ConversationDetailPage({ params }: { params: { id: strin
             onApply={handleApplySuggestion}
             onGenerate={handleGenerateSuggestion}
           />
+          {conversation?.conversation_pk && (
+            <FollowupPanel conversationPk={conversation.conversation_pk} />
+          )}
+          {conversation?.conversation_pk && (
+            <RecommendationPanel conversationPk={conversation.conversation_pk} />
+          )}
+          {conversation?.customer_pk && (
+            <RiskFlagPanel customerPk={conversation.customer_pk} conversationPk={conversation.conversation_pk} />
+          )}
+          {conversation?.customer_pk && (
+            <CustomerProfilePanel customerPk={conversation.customer_pk} />
+          )}
         </div>
       </div>
     </div>

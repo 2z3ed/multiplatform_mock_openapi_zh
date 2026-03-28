@@ -8,6 +8,7 @@ from sqlalchemy.orm import sessionmaker
 
 from domain_models.models.customer_tag import CustomerTag
 from domain_models.models.customer import Customer
+from domain_models.models.audit_log import AuditLog
 from shared_db.base import Base
 from app.services.tag_service import CustomerTagService
 
@@ -134,3 +135,71 @@ class TestCustomerTagService:
         service = CustomerTagService(db_session=db_session)
         result = service.delete_tag(9999)
         assert result is False
+
+
+class TestCustomerTagAuditLogs:
+    """Test customer tag audit logging"""
+
+    def test_create_tag_logs_audit(self, db_session, setup_data):
+        """Test creating tag writes customer_tag_created audit"""
+        service = CustomerTagService(db_session=db_session)
+        result = service.create_tag(
+            customer_id=1,
+            tag_type="behavior",
+            tag_value="high_value"
+        )
+
+        audit_logs = db_session.query(AuditLog).filter(
+            AuditLog.action == "customer_tag_created"
+        ).all()
+        
+        assert len(audit_logs) == 1
+        assert audit_logs[0].target_id == str(result["id"])
+        assert audit_logs[0].detail_json["tag_type"] == "behavior"
+        assert audit_logs[0].detail_json["tag_value"] == "high_value"
+
+    def test_create_tag_failure_does_not_log_audit(self, db_session, setup_data):
+        """Test creating tag with invalid tag_type does not write audit"""
+        service = CustomerTagService(db_session=db_session)
+        service.create_tag(
+            customer_id=1,
+            tag_type="invalid_type",
+            tag_value="some_value"
+        )
+
+        audit_logs = db_session.query(AuditLog).filter(
+            AuditLog.action == "customer_tag_created"
+        ).all()
+        
+        assert len(audit_logs) == 0
+
+    def test_delete_tag_logs_audit(self, db_session, setup_data):
+        """Test deleting tag writes customer_tag_deleted audit"""
+        service = CustomerTagService(db_session=db_session)
+        created = service.create_tag(
+            customer_id=1,
+            tag_type="behavior",
+            tag_value="test"
+        )
+
+        service.delete_tag(created["id"])
+
+        audit_logs = db_session.query(AuditLog).filter(
+            AuditLog.action == "customer_tag_deleted"
+        ).all()
+        
+        assert len(audit_logs) == 1
+        assert audit_logs[0].target_id == str(created["id"])
+        assert audit_logs[0].detail_json["tag_type"] == "behavior"
+        assert audit_logs[0].detail_json["tag_value"] == "test"
+
+    def test_delete_nonexistent_tag_does_not_log_audit(self, db_session, setup_data):
+        """Test deleting non-existent tag does not write audit"""
+        service = CustomerTagService(db_session=db_session)
+        service.delete_tag(9999)
+
+        audit_logs = db_session.query(AuditLog).filter(
+            AuditLog.action == "customer_tag_deleted"
+        ).all()
+        
+        assert len(audit_logs) == 0
