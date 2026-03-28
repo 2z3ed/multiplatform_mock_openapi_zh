@@ -34,7 +34,7 @@ export default function RecommendationPanel({ conversationPk }: RecommendationPa
       setLoading(true);
       setError(null);
       const data = await getRecommendationsByConversationId(conversationPk);
-      setRecommendations(data);
+      setRecommendations(Array.isArray(data) ? data : []);
     } catch (err) {
       setError("推荐记录加载失败");
       console.error("Failed to fetch recommendations:", err);

@@ -1,7 +1,5 @@
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
-
 async function fetchAPI<T>(endpoint: string, options?: RequestInit): Promise<T> {
-  const response = await fetch(`${API_BASE_URL}${endpoint}`, {
+  const response = await fetch(endpoint, {
     headers: {
       "Content-Type": "application/json",
       ...options?.headers,
@@ -34,9 +32,10 @@ export interface Recommendation {
 export async function getRecommendationsByConversationId(
   conversationId: number
 ): Promise<Recommendation[]> {
-  return fetchAPI<Recommendation[]>(
+  const response = await fetchAPI<Recommendation[]>(
     `/api/conversations/${conversationId}/recommendations`
   );
+  return Array.isArray(response) ? response : [];
 }
 
 export async function acceptRecommendation(

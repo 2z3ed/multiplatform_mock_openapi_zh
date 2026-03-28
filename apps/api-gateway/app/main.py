@@ -211,3 +211,167 @@ async def create_audit_log(request: Request):
             json=body
         )
     return JSONResponse(content=response.json(), status_code=response.status_code)
+
+
+@app.get("/api/follow-up/tasks")
+async def get_follow_up_tasks(request: Request):
+    async with httpx.AsyncClient() as client:
+        response = await client.get(
+            f"{BACKEND_SERVICES['domain-service']}/api/follow-up/tasks",
+            params=request.query_params
+        )
+    return JSONResponse(content=response.json(), status_code=response.status_code)
+
+
+@app.post("/api/follow-up/tasks/{task_id}/execute")
+async def execute_follow_up_task(task_id: int, request: Request):
+    body = await request.json()
+    async with httpx.AsyncClient() as client:
+        response = await client.post(
+            f"{BACKEND_SERVICES['domain-service']}/api/follow-up/tasks/{task_id}/execute",
+            json=body
+        )
+    return JSONResponse(content=response.json(), status_code=response.status_code)
+
+
+@app.post("/api/follow-up/tasks/{task_id}/close")
+async def close_follow_up_task(task_id: int, request: Request):
+    body = await request.json()
+    async with httpx.AsyncClient() as client:
+        response = await client.post(
+            f"{BACKEND_SERVICES['domain-service']}/api/follow-up/tasks/{task_id}/close",
+            json=body
+        )
+    return JSONResponse(content=response.json(), status_code=response.status_code)
+
+
+@app.get("/api/conversations/{conversation_id}/recommendations")
+async def get_recommendations(conversation_id: int):
+    async with httpx.AsyncClient() as client:
+        response = await client.get(
+            f"{BACKEND_SERVICES['domain-service']}/api/conversations/{conversation_id}/recommendations"
+        )
+    return JSONResponse(content=response.json(), status_code=response.status_code)
+
+
+@app.post("/api/recommendations/{recommendation_id}/accept")
+async def accept_recommendation(recommendation_id: int):
+    async with httpx.AsyncClient() as client:
+        response = await client.post(
+            f"{BACKEND_SERVICES['domain-service']}/api/recommendations/{recommendation_id}/accept"
+        )
+    return JSONResponse(content=response.json(), status_code=response.status_code)
+
+
+@app.post("/api/recommendations/{recommendation_id}/reject")
+async def reject_recommendation(recommendation_id: int):
+    async with httpx.AsyncClient() as client:
+        response = await client.post(
+            f"{BACKEND_SERVICES['domain-service']}/api/recommendations/{recommendation_id}/reject"
+        )
+    return JSONResponse(content=response.json(), status_code=response.status_code)
+
+
+@app.get("/api/risk-flags")
+async def get_risk_flags(request: Request):
+    async with httpx.AsyncClient() as client:
+        response = await client.get(
+            f"{BACKEND_SERVICES['domain-service']}/api/risk-flags",
+            params=request.query_params
+        )
+    return JSONResponse(content=response.json(), status_code=response.status_code)
+
+
+@app.post("/api/risk-flags")
+async def create_risk_flag(request: Request):
+    body = await request.json()
+    async with httpx.AsyncClient() as client:
+        response = await client.post(
+            f"{BACKEND_SERVICES['domain-service']}/api/risk-flags",
+            json=body
+        )
+    return JSONResponse(content=response.json(), status_code=response.status_code)
+
+
+@app.post("/api/risk-flags/{risk_flag_id}/resolve")
+async def resolve_risk_flag(risk_flag_id: int):
+    async with httpx.AsyncClient() as client:
+        response = await client.post(
+            f"{BACKEND_SERVICES['domain-service']}/api/risk-flags/{risk_flag_id}/resolve"
+        )
+    return JSONResponse(content=response.json(), status_code=response.status_code)
+
+
+@app.post("/api/risk-flags/{risk_flag_id}/dismiss")
+async def dismiss_risk_flag(risk_flag_id: int):
+    async with httpx.AsyncClient() as client:
+        response = await client.post(
+            f"{BACKEND_SERVICES['domain-service']}/api/risk-flags/{risk_flag_id}/dismiss"
+        )
+    return JSONResponse(content=response.json(), status_code=response.status_code)
+
+
+@app.get("/api/customers/{customer_id}/profile")
+async def get_customer_profile(customer_id: int):
+    async with httpx.AsyncClient() as client:
+        response = await client.get(
+            f"{BACKEND_SERVICES['domain-service']}/api/customers/{customer_id}/profile"
+        )
+    return JSONResponse(content=response.json(), status_code=response.status_code)
+
+
+@app.get("/api/customers/{customer_id}/tags")
+async def get_customer_tags(customer_id: int):
+    async with httpx.AsyncClient() as client:
+        response = await client.get(
+            f"{BACKEND_SERVICES['domain-service']}/api/customers/{customer_id}/tags"
+        )
+    return JSONResponse(content=response.json(), status_code=response.status_code)
+
+
+@app.get("/api/tags")
+async def get_tags():
+    async with httpx.AsyncClient() as client:
+        response = await client.get(
+            f"{BACKEND_SERVICES['domain-service']}/api/tags"
+        )
+    return JSONResponse(content=response.json(), status_code=response.status_code)
+
+
+@app.post("/api/tags")
+async def create_tag(request: Request):
+    body = await request.json()
+    async with httpx.AsyncClient() as client:
+        response = await client.post(
+            f"{BACKEND_SERVICES['domain-service']}/api/tags",
+            json=body
+        )
+    return JSONResponse(content=response.json(), status_code=response.status_code)
+
+
+@app.delete("/api/tags/{tag_id}")
+async def delete_tag(tag_id: int):
+    async with httpx.AsyncClient() as client:
+        response = await client.delete(
+            f"{BACKEND_SERVICES['domain-service']}/api/tags/{tag_id}"
+        )
+    return JSONResponse(content=response.json(), status_code=response.status_code)
+
+
+@app.get("/api/operation-campaigns")
+async def get_operation_campaigns():
+    async with httpx.AsyncClient() as client:
+        response = await client.get(
+            f"{BACKEND_SERVICES['domain-service']}/api/operation-campaigns"
+        )
+    return JSONResponse(content=response.json(), status_code=response.status_code)
+
+
+@app.get("/api/analytics/summaries")
+async def get_analytics_summaries(request: Request):
+    async with httpx.AsyncClient() as client:
+        response = await client.get(
+            f"{BACKEND_SERVICES['domain-service']}/api/analytics/summaries",
+            params=request.query_params
+        )
+    return JSONResponse(content=response.json(), status_code=response.status_code)

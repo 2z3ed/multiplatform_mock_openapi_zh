@@ -35,7 +35,7 @@ export default function FollowupPanel({ conversationPk }: FollowupPanelProps) {
       setLoading(true);
       setError(null);
       const data = await getFollowupTasksByConversationId(conversationPk);
-      setTasks(data);
+      setTasks(Array.isArray(data) ? data : []);
     } catch (err) {
       setError("跟进任务加载失败");
       console.error("Failed to fetch followup tasks:", err);

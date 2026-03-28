@@ -190,7 +190,7 @@ function OrderPanel({ order }: { order: Order | null }) {
         </div>
         <div className="mt-3 pt-3 border-t">
           <p className="text-gray-500 mb-1">商品:</p>
-          {order.items.map((item, idx) => (
+          {(order.items || []).map((item, idx) => (
             <p key={idx} className="text-sm">
               {item.sku_name} x{item.quantity}
             </p>
@@ -337,8 +337,9 @@ function SuggestionPanel({
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
 
-export default function ConversationDetailPage({ params }: { params: { id: string } }) {
-  const convId = params.id;
+export default function ConversationDetailPage() {
+  const params = useParams();
+  const convId = params.id as string;
   const [conversation, setConversation] = useState<Conversation | null>(null);
   const [messages, setMessages] = useState<Message[]>([]);
   const [order, setOrder] = useState<Order | null>(null);
@@ -365,11 +366,11 @@ export default function ConversationDetailPage({ params }: { params: { id: strin
         if (convData.platform === "jd") {
           const [orderRes, shipmentRes] = await Promise.all([
             fetch(`/api/orders/jd/${convId}`),
-            fetch(`${API_URL}/api/shipments/jd/${convId}`),
+            fetch(`/api/shipments/jd/${convId}`),
           ]);
           const orderData = await orderRes.json();
           const shipmentData = await shipmentRes.json();
-          setOrder(orderData.items?.[0] || null);
+          setOrder(orderData.order_id ? orderData : null);
           setShipment(shipmentData.shipments ? shipmentData : null);
         }
       } catch (error) {
@@ -392,7 +393,7 @@ export default function ConversationDetailPage({ params }: { params: { id: strin
     setMessages([...messages, newMsg]);
 
     try {
-      await fetch("/api/audit-logs", {
+      await fetch(`/api/audit-logs`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -419,7 +420,7 @@ export default function ConversationDetailPage({ params }: { params: { id: strin
       const lastMsg = messages.filter(m => m.direction === "inbound").pop();
       if (!lastMsg) return;
       
-      const res = await fetch(`${API_URL}/api/ai/suggest-reply`, {
+      const res = await fetch(`/api/ai/suggest-reply`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
