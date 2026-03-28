@@ -26,3 +26,5 @@ out/
 *.log
 dist/
 build/
+
+apps/agent-console/tsconfig.tsbuildinfo
