@@ -2,9 +2,10 @@ import { NextResponse } from "next/server";
 
 const API_GATEWAY_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
 
-export async function GET(request: Request, { params }: { params: { platform: string; orderId: string } }) {
+export async function GET(request: Request, { params }: { params: Promise<{ platform: string; orderId: string }> }) {
   try {
-    const response = await fetch(`${API_GATEWAY_URL}/api/orders/${params.platform}/${params.orderId}`, {
+    const { platform, orderId } = await params;
+    const response = await fetch(`${API_GATEWAY_URL}/api/orders/${platform}/${orderId}`, {
       headers: { "Content-Type": "application/json" },
     });
     const data = await response.json();

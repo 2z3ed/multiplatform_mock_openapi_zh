@@ -2,9 +2,10 @@ import { NextResponse } from "next/server";
 
 const API_GATEWAY_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
 
-export async function POST(request: Request, { params }: { params: { id: string } }) {
+export async function POST(request: Request, { params }: { params: Promise<{ id: string }> }) {
   try {
-    const response = await fetch(`${API_GATEWAY_URL}/api/risk-flags/${params.id}/dismiss`, {
+    const { id } = await params;
+    const response = await fetch(`${API_GATEWAY_URL}/api/risk-flags/${id}/dismiss`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
     });

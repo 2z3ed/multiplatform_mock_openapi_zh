@@ -51,7 +51,7 @@
 - [x] Get risk flag by id
 - [x] Audit logs are recorded (3 events: created, resolved, dismissed)
 - [x] API semantics: 404 for not found, 400 for invalid status
-- [ ] Risk flags visible in console (Frontend - 未开始)
+- [x] Risk flags visible in console (Agent Console 会话详情页 4 态闭环)
 
 ## Engineering rules
 - [x] All new APIs include OpenAPI annotations

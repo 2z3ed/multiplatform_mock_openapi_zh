@@ -8,8 +8,30 @@ async function fetchAPI<T>(endpoint: string, options?: RequestInit): Promise<T> 
   });
 
   if (!response.ok) {
-    const error = await response.json().catch(() => ({ detail: "Request failed" }));
-    throw new Error(error.detail || `HTTP ${response.status}`);
+    let errorMessage = `HTTP ${response.status}`;
+    try {
+      const contentType = response.headers.get("content-type");
+      if (contentType && contentType.includes("application/json")) {
+        const error = await response.json();
+        if (error.detail) {
+          if (typeof error.detail === "string") {
+            errorMessage = error.detail;
+          } else if (Array.isArray(error.detail)) {
+            errorMessage = error.detail.map((e: { msg?: string }) => e.msg || JSON.stringify(e)).join("; ");
+          } else {
+            errorMessage = JSON.stringify(error.detail);
+          }
+        } else if (error.error) {
+          errorMessage = typeof error.error === "string" ? error.error : JSON.stringify(error.error);
+        }
+      } else {
+        const text = await response.text();
+        errorMessage = text || errorMessage;
+      }
+    } catch {
+      errorMessage = `HTTP ${response.status}`;
+    }
+    throw new Error(errorMessage);
   }
 
   return response.json();

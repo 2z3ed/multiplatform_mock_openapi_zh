@@ -2,9 +2,10 @@ import { NextResponse } from "next/server";
 
 const API_GATEWAY_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
 
-export async function DELETE(request: Request, { params }: { params: { id: string } }) {
+export async function DELETE(request: Request, { params }: { params: Promise<{ id: string }> }) {
   try {
-    const response = await fetch(`${API_GATEWAY_URL}/api/tags/${params.id}`, {
+    const { id } = await params;
+    const response = await fetch(`${API_GATEWAY_URL}/api/tags/${id}`, {
       method: "DELETE",
       headers: { "Content-Type": "application/json" },
     });
