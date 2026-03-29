@@ -10,6 +10,7 @@ RUN pip install --no-cache-dir \
     pydantic \
     pydantic-settings \
     httpx \
-    python-dotenv
+    python-dotenv \
+    openai
 
 ENV PYTHONUNBUFFERED=1

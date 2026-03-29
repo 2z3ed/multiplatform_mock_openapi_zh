@@ -153,7 +153,7 @@ async def get_after_sale(platform: str, after_sale_id: str):
 @app.post("/api/ai/suggest-reply")
 async def suggest_reply(request: Request):
     body = await request.json()
-    async with httpx.AsyncClient() as client:
+    async with httpx.AsyncClient(timeout=60.0) as client:
         response = await client.post(
             f"{BACKEND_SERVICES['ai-orchestrator']}/api/ai/suggest-reply",
             json=body

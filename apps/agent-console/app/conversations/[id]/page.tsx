@@ -298,11 +298,15 @@ function SuggestionPanel({
       <div className="space-y-2 text-sm mb-4">
         <div className="flex justify-between">
           <span className="text-gray-500">意图:</span>
-          <span>{suggestion.intent}</span>
+          <span>{suggestion.intent || "-"}</span>
         </div>
         <div className="flex justify-between">
           <span className="text-gray-500">置信度:</span>
-          <span>{(suggestion.confidence * 100).toFixed(0)}%</span>
+          <span>
+            {typeof suggestion.confidence === "number"
+              ? `${(suggestion.confidence * 100).toFixed(0)}%`
+              : "-"}
+          </span>
         </div>
         <div className="flex justify-between">
           <span className="text-gray-500">风险:</span>
@@ -310,15 +314,17 @@ function SuggestionPanel({
             className={`${
               suggestion.risk_level === "low"
                 ? "text-green-600"
+                : suggestion.risk_level === "high"
+                ? "text-red-600"
                 : "text-yellow-600"
             }`}
           >
-            {suggestion.risk_level}
+            {suggestion.risk_level || "-"}
           </span>
         </div>
       </div>
       <div className="bg-gray-50 p-3 rounded mb-4">
-        <p className="text-sm">{suggestion.suggested_reply}</p>
+        <p className="text-sm">{suggestion.suggested_reply || "暂无建议内容"}</p>
       </div>
       <div className="flex gap-2">
         <button
