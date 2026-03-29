@@ -160,11 +160,13 @@ function ReplyComposer({
   );
 }
 
-function OrderPanel({ order }: { order: Order | null }) {
+function OrderPanel({ order, platform }: { order: Order | null; platform?: string }) {
   if (!order) return (
     <div className="bg-white rounded-lg shadow p-4">
       <h3 className="font-medium text-lg mb-3">订单信息</h3>
-      <p className="text-sm text-gray-500">暂无订单信息</p>
+      <p className="text-sm text-gray-500">
+        {platform === "wecom_kf" ? "当前平台暂不支持订单上下文" : "暂无订单信息"}
+      </p>
     </div>
   );
   
@@ -201,11 +203,13 @@ function OrderPanel({ order }: { order: Order | null }) {
   );
 }
 
-function ShipmentPanel({ shipment }: { shipment: Shipment | null }) {
+function ShipmentPanel({ shipment, platform }: { shipment: Shipment | null; platform?: string }) {
   if (!shipment || !shipment.shipments?.length) return (
     <div className="bg-white rounded-lg shadow p-4">
       <h3 className="font-medium text-lg mb-3">物流信息</h3>
-      <p className="text-sm text-gray-500">暂无物流信息</p>
+      <p className="text-sm text-gray-500">
+        {platform === "wecom_kf" ? "当前平台暂不支持物流信息" : platform === "douyin_shop" ? "当前平台暂不支持物流查询" : "暂无物流信息"}
+      </p>
     </div>
   );
   
@@ -232,11 +236,13 @@ function ShipmentPanel({ shipment }: { shipment: Shipment | null }) {
   );
 }
 
-function AfterSalePanel({ afterSale }: { afterSale: AfterSale | null }) {
+function AfterSalePanel({ afterSale, platform }: { afterSale: AfterSale | null; platform?: string }) {
   if (!afterSale) return (
     <div className="bg-white rounded-lg shadow p-4">
       <h3 className="font-medium text-lg mb-3">售后信息</h3>
-      <p className="text-sm text-gray-500">暂无售后信息</p>
+      <p className="text-sm text-gray-500">
+        {platform === "wecom_kf" ? "当前平台暂不支持售后信息" : "暂无售后信息"}
+      </p>
     </div>
   );
   
@@ -363,15 +369,28 @@ export default function ConversationDetailPage() {
         setConversation(convData);
         setMessages(msgData.items || []);
         
-        if (convData.platform === "jd") {
-          const [orderRes, shipmentRes] = await Promise.all([
-            fetch(`/api/orders/jd/${convId}`),
-            fetch(`/api/shipments/jd/${convId}`),
+        const contextMap: Record<string, { platform: string; orderId?: string; afterSaleId?: string; isEcommerce?: boolean }> = {
+          "conv_001": { platform: "jd", orderId: "JD20240315001", afterSaleId: "JD20240315001", isEcommerce: true },
+          "conv_002": { platform: "douyin_shop", orderId: "DY20240315001", afterSaleId: "DY20240315001", isEcommerce: true },
+          "conv_003": { platform: "wecom_kf", isEcommerce: false },
+        };
+        const ctx = contextMap[convId];
+        if (ctx?.isEcommerce && ctx.orderId) {
+          const [orderRes, shipmentRes, afterSaleRes] = await Promise.all([
+            fetch(`/api/orders/${ctx.platform}/${ctx.orderId}`),
+            ctx.platform === "jd" ? fetch(`/api/shipments/${ctx.platform}/${ctx.orderId}`) : Promise.resolve({ json: async () => null }),
+            ctx.afterSaleId ? fetch(`/api/after-sales/${ctx.platform}/${ctx.afterSaleId}`) : Promise.resolve({ json: async () => null }),
           ]);
           const orderData = await orderRes.json();
           const shipmentData = await shipmentRes.json();
+          const afterSaleData = await afterSaleRes.json();
           setOrder(orderData.order_id ? orderData : null);
-          setShipment(shipmentData.shipments ? shipmentData : null);
+          setShipment(ctx.platform === "jd" && shipmentData.shipments ? shipmentData : null);
+          setAfterSale(afterSaleData.after_sale_id ? afterSaleData : null);
+        } else if (ctx && !ctx.isEcommerce) {
+          setOrder(null);
+          setShipment(null);
+          setAfterSale(null);
         }
       } catch (error) {
         console.error("Failed to fetch conversation data:", error);
@@ -448,9 +467,9 @@ export default function ConversationDetailPage() {
           <ReplyComposer onSend={handleSend} initialText={replyText} />
         </div>
         <div className="w-80 border-l bg-gray-100 p-4 space-y-4 overflow-y-auto">
-          <OrderPanel order={order} />
-          <ShipmentPanel shipment={shipment} />
-          <AfterSalePanel afterSale={afterSale} />
+          <OrderPanel order={order} platform={conversation?.platform} />
+          <ShipmentPanel shipment={shipment} platform={conversation?.platform} />
+          <AfterSalePanel afterSale={afterSale} platform={conversation?.platform} />
           <SuggestionPanel
             suggestion={suggestion}
             onApply={handleApplySuggestion}
