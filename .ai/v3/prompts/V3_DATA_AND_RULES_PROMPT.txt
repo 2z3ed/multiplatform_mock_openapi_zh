@@ -1,0 +1,30 @@
+You are refining Omni-CSX V3 data models, rules and boundaries.
+
+Read first:
+- .ai/v3/agent.md
+- .ai/v3/README.md
+- .ai/v3/V3_ROADMAP.md
+- .ai/v3/V3_ACCEPTANCE_CHECKLIST.md
+
+Your job:
+- refine model boundaries
+- refine rule boundaries
+- refine state machines
+- refine audit events
+- refine minimal schemas
+
+Do NOT:
+- write full implementation code immediately
+- expand one module into a platform
+- invent unsupported dependencies
+- skip relationship explanation with Customer / Conversation / Order / Message / AuditLog
+
+For every model/rule proposal, output:
+1. one-sentence definition
+2. why it exists in V3 instead of V2
+3. required fields only
+4. non-goals
+5. related objects
+6. required audit events
+7. whether migration is needed
+8. whether frontend validation is needed now

@@ -1,0 +1,137 @@
+Omni-CSX V3 Task Breakdown
+
+Purpose:
+Break V3 into small, submit-ready increments.
+Do not open more than one center at the same time.
+
+==================================================
+Stage 0: Design Convergence
+==================================================
+
+Goal:
+- Freeze V3 scope
+- Freeze module priority
+- Freeze first implementation target
+- Freeze data model drafts
+- Freeze service boundary decision
+- Freeze non-goals
+
+Output:
+- V3 implementation plan
+- chosen first module
+- data model draft
+- migration approach
+- API approach
+- audit plan
+- tests plan
+- frontend validation entry
+
+==================================================
+Stage 1: Quality Inspection Center MVP
+==================================================
+
+Suggested scope:
+- quality_rule
+- quality_inspection_result
+- quality_alert
+- rules engine
+- run inspection by conversation_id or batch condition
+- list results
+- list alerts
+- minimal reports
+- audit logging
+- tests
+- minimal management page
+
+Do not do:
+- full large-screen BI
+- advanced model training
+- complex multi-model scoring platform
+
+Suggested order:
+1. model + migration
+2. repository
+3. service
+4. API
+5. OpenAPI
+6. tests
+7. minimal frontend validation page
+
+==================================================
+Stage 2: Risk Center MVP
+==================================================
+
+Suggested scope:
+- risk_case
+- blacklist_customer
+- risk detection rules
+- resolve / dismiss / escalate
+- minimal review flow
+- audit logging
+- tests
+- minimal management page
+
+Do not do:
+- advanced streaming risk engine
+- full policy engine platform
+- cross-platform enterprise-grade blacklist sync
+
+==================================================
+Stage 3: ERP / OMS / WMS Integration MVP
+==================================================
+
+Suggested scope:
+- mock ERP / OMS / WMS tools
+- inventory snapshot
+- order audit snapshot
+- order exception snapshot
+- state explanation outputs
+- minimal list/detail pages
+- audit logging
+- tests
+
+Do not do:
+- all real ERP systems
+- full supply-chain optimization
+- automatic marketing orchestration
+
+==================================================
+Stage 4: Management Analysis / Training MVP
+==================================================
+
+Suggested scope:
+- voc_topic
+- training_case
+- training_task
+- management_dashboard_snapshot
+- topic extraction
+- case summarization
+- training task creation
+- minimal snapshot generation
+- audit logging
+- tests
+- minimal management pages
+
+Do not do:
+- self-service BI platform
+- full training management platform
+- automatic organization-wide optimization loop
+
+==================================================
+Cross-Module Rules
+==================================================
+
+Every V3 iteration must:
+- explain changed files first
+- explain DB changes first
+- explain impact on V1/V2 first
+- include tests
+- include audit
+- keep stable contracts intact
+
+Do not:
+- start frontend before backend closes
+- rewrite unrelated modules
+- silently add new services
+- silently add provider dependencies
+- expand scope after coding starts

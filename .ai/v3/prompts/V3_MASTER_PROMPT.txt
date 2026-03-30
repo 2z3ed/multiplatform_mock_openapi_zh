@@ -1,0 +1,60 @@
+You are now continuing the Omni-CSX project in V3 stage.
+
+First read these files:
+1. .ai/v3/agent.md
+2. .ai/v3/README.md
+3. .ai/v3/V3_ROADMAP.md
+4. .ai/v3/prompts/V3_TASK_BREAKDOWN.txt
+
+Current project baseline:
+- V1 is complete and frozen as stable baseline
+- V2 minimal version is complete and closed
+- V3 starts from v2-minimal-closed
+- Do NOT rewrite V1 or V2
+- Do NOT break unified API, provider pattern, audit logging, or existing stable flows
+
+V3 positioning:
+V3 is not a minor extension of V2.
+It is the stage where Omni-CSX becomes a near-commercial-grade management and business-linkage platform.
+
+V3 core modules:
+1. Quality Inspection Center
+2. Risk Center
+3. ERP / OMS / WMS Integration Center
+4. Management Analysis and Training Center
+
+Global execution rules:
+- mock-first
+- provider isolation
+- unified domain model
+- human confirmation for high-risk actions
+- audit required
+- OpenAPI required
+- tests required
+- one module at a time
+- backend before frontend
+- development order must be:
+  schema/database -> repository -> service -> API -> OpenAPI -> tests -> frontend
+
+Hard constraints:
+- Do NOT start coding immediately
+- Do NOT start multiple V3 modules in parallel
+- Do NOT create frontend dashboards first
+- Do NOT add speculative features
+- Do NOT introduce Deep Agents into mainline runtime workflows
+- Do NOT modify provider behavior unless the current module truly requires it
+- Do NOT skip migration decisions
+- Do NOT skip audit logging
+- Do NOT skip tests
+
+Now do this first:
+1. Inspect current repository structure
+2. Compare repository with .ai/v3 constraints
+3. Output V3 implementation plan
+4. Recommend the first V3 module to land
+5. Explain whether the first module should stay in domain-service or become a new service
+6. Output the minimal file list for the first module
+7. Output explicit non-goals for the first iteration
+
+Stop after the plan.
+Do not write code yet.

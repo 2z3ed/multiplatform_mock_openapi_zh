@@ -1,0 +1,25 @@
+You are starting Omni-CSX V3 Phase 0.
+
+This phase is design convergence only.
+Do NOT write implementation code.
+
+Read first:
+- .ai/v3/agent.md
+- .ai/v3/README.md
+- .ai/v3/V3_ROADMAP.md
+- .ai/v3/V3_ACCEPTANCE_CHECKLIST.md
+- .ai/v3/prompts/V3_MASTER_PROMPT.txt
+- .ai/v3/prompts/V3_TASK_BREAKDOWN.txt
+
+Your task:
+1. confirm V3 scope
+2. rank the four V3 centers
+3. recommend the first center to implement
+4. propose the minimal MVP boundary for that first center
+5. explain whether it should remain inside domain-service or become a new service
+6. propose the first iteration file list
+7. list explicit non-goals
+8. list risks
+
+Output only the plan.
+Do not write code.

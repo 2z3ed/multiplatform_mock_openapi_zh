@@ -6,6 +6,9 @@ const menuItems = [
   { href: "/audit", label: "审计日志", description: "查看系统操作日志" },
   { href: "/operations", label: "运营活动", description: "查看运营活动列表" },
   { href: "/analytics", label: "数据概览", description: "查看数据统计摘要" },
+  { href: "/quality/rules", label: "质检规则", description: "管理质检规则" },
+  { href: "/quality/results", label: "质检结果", description: "查看质检结果列表" },
+  { href: "/quality/alerts", label: "质检告警", description: "查看质检告警列表" },
 ];
 
 export default function HomePage() {

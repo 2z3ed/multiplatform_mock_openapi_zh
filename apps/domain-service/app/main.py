@@ -10,6 +10,9 @@ from app.api.recommendation import router as recommendation_router, conversation
 from app.api.operation_campaign import router as operation_campaign_router
 from app.api.analytics import router as analytics_router
 from app.api.risk_flag import router as risk_flag_router
+from app.api.quality_rule import router as quality_rule_router
+from app.api.quality_inspection import router as quality_inspection_router
+from app.api.quality_alert import router as quality_alert_router
 
 app = FastAPI(
     title="Domain Service",
@@ -31,6 +34,9 @@ app.include_router(conversation_router)
 app.include_router(operation_campaign_router)
 app.include_router(analytics_router)
 app.include_router(risk_flag_router)
+app.include_router(quality_rule_router)
+app.include_router(quality_inspection_router)
+app.include_router(quality_alert_router)
 
 
 @app.get("/health")

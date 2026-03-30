@@ -13,6 +13,9 @@ from domain_models.models.message import Message
 from domain_models.models.operation_campaign import OperationCampaign
 from domain_models.models.order_snapshot import OrderSnapshot
 from domain_models.models.platform_account import PlatformAccount
+from domain_models.models.quality_alert import QualityAlert
+from domain_models.models.quality_inspection_result import QualityInspectionResult
+from domain_models.models.quality_rule import QualityRule
 from domain_models.models.recommendation import Recommendation
 from domain_models.models.risk_flag import RiskFlag
 from domain_models.models.shipment_snapshot import ShipmentSnapshot
@@ -33,7 +36,9 @@ __all__ = [
     "AnalyticsSummary",
     "AuditLog",
     "FollowUpTask",
+    "QualityAlert",
+    "QualityInspectionResult",
+    "QualityRule",
     "Recommendation",
-    "OperationCampaign",
     "RiskFlag",
 ]

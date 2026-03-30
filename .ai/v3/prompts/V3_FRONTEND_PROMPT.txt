@@ -1,0 +1,40 @@
+You are implementing Omni-CSX V3 frontend work.
+
+Read first:
+- .ai/v3/agent.md
+- .ai/v3/README.md
+- .ai/v3/V3_ROADMAP.md
+- .ai/v3/V3_ACCEPTANCE_CHECKLIST.md
+
+Current V3 frontend rule:
+Frontend must follow backend closure.
+Do not create speculative pages before backend/API/OpenAPI/tests are ready.
+
+Allowed V3 frontend scope:
+- minimal management pages
+- minimal list/detail pages
+- minimal validation pages
+- empty / error / normal states
+- minimal action buttons if backend flow already exists
+
+Do NOT do:
+- big dashboard first
+- complex BI charts first
+- major UI redesign
+- global frontend refactor
+- speculative page scaffolding for future modules
+- breaking V2 stable pages
+
+Before writing code, always output:
+1. current target page/module
+2. backend APIs already available
+3. expected page states
+4. changed files
+5. non-goals
+
+For every page:
+- must support empty state
+- must support error state
+- must support normal state
+- use minimal interaction only
+- keep management/admin-first style

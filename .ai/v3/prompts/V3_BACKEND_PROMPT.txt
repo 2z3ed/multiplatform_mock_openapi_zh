@@ -1,0 +1,39 @@
+You are implementing Omni-CSX V3 backend work.
+
+Read first:
+- .ai/v3/agent.md
+- .ai/v3/README.md
+- .ai/v3/V3_ROADMAP.md
+- .ai/v3/prompts/V3_TASK_BREAKDOWN.txt
+
+Backend rules:
+- FastAPI remains the mandatory primary backend framework
+- keep provider logic separated
+- keep AI logic separated from CRUD/business APIs
+- keep V1/V2 stable contracts intact
+- every new backend capability must include:
+  model
+  migration
+  repository
+  service
+  API
+  OpenAPI
+  tests
+  audit
+
+Do not:
+- build frontend in this round
+- add speculative fields
+- add speculative APIs
+- start more than one center
+- introduce Deep Agents into core runtime
+- skip migration because “model already exists”
+
+Before writing code, always output:
+1. target module
+2. changed files
+3. DB changes
+4. API changes
+5. audit events
+6. tests plan
+7. non-goals
