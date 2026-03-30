@@ -2,6 +2,7 @@ from domain_models.models.after_sale_case import AfterSaleCase
 from domain_models.models.ai_suggestion import AISuggestion
 from domain_models.models.analytics_summary import AnalyticsSummary
 from domain_models.models.audit_log import AuditLog
+from domain_models.models.blacklist_customer import BlacklistCustomer
 from domain_models.models.conversation import Conversation
 from domain_models.models.customer import Customer
 from domain_models.models.customer_profile import CustomerProfile
@@ -17,6 +18,7 @@ from domain_models.models.quality_alert import QualityAlert
 from domain_models.models.quality_inspection_result import QualityInspectionResult
 from domain_models.models.quality_rule import QualityRule
 from domain_models.models.recommendation import Recommendation
+from domain_models.models.risk_case import RiskCase
 from domain_models.models.risk_flag import RiskFlag
 from domain_models.models.shipment_snapshot import ShipmentSnapshot
 
@@ -35,10 +37,12 @@ __all__ = [
     "AISuggestion",
     "AnalyticsSummary",
     "AuditLog",
+    "BlacklistCustomer",
     "FollowUpTask",
     "QualityAlert",
     "QualityInspectionResult",
     "QualityRule",
     "Recommendation",
+    "RiskCase",
     "RiskFlag",
 ]

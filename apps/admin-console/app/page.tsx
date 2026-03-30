@@ -9,6 +9,8 @@ const menuItems = [
   { href: "/quality/rules", label: "质检规则", description: "管理质检规则" },
   { href: "/quality/results", label: "质检结果", description: "查看质检结果列表" },
   { href: "/quality/alerts", label: "质检告警", description: "查看质检告警列表" },
+  { href: "/risk/cases", label: "风险事件", description: "查看风险事件列表" },
+  { href: "/risk/blacklist", label: "黑名单客户", description: "查看黑名单客户列表" },
 ];
 
 export default function HomePage() {
