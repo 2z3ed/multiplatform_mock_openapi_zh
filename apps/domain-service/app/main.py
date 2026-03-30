@@ -15,6 +15,8 @@ from app.api.quality_inspection import router as quality_inspection_router
 from app.api.quality_alert import router as quality_alert_router
 from app.api.risk_case import router as risk_case_router
 from app.api.blacklist_customer import router as blacklist_customer_router
+from app.api.integration import router as integration_router
+from app.api.management import router as management_router
 
 app = FastAPI(
     title="Domain Service",
@@ -41,6 +43,8 @@ app.include_router(quality_inspection_router)
 app.include_router(quality_alert_router)
 app.include_router(risk_case_router)
 app.include_router(blacklist_customer_router)
+app.include_router(integration_router)
+app.include_router(management_router)
 
 
 @app.get("/health")

@@ -11,6 +11,13 @@ const menuItems = [
   { href: "/quality/alerts", label: "质检告警", description: "查看质检告警列表" },
   { href: "/risk/cases", label: "风险事件", description: "查看风险事件列表" },
   { href: "/risk/blacklist", label: "黑名单客户", description: "查看黑名单客户列表" },
+  { href: "/integration/inventory", label: "库存快照", description: "查看库存快照列表" },
+  { href: "/integration/order-audits", label: "订单审核", description: "查看订单审核状态" },
+  { href: "/integration/order-exceptions", label: "异常订单", description: "查看异常订单列表" },
+  { href: "/management/voc-topics", label: "VOC 主题", description: "查看客户声音主题列表" },
+  { href: "/management/training-cases", label: "培训案例", description: "查看培训案例列表" },
+  { href: "/management/training-tasks", label: "训练任务", description: "查看训练任务列表" },
+  { href: "/management/dashboard-snapshots", label: "管理看板", description: "查看管理看板快照" },
 ];
 
 export default function HomePage() {
