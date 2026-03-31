@@ -13,7 +13,8 @@ from domain_models.models import (
     AfterSaleCase, KBDocument, KBChunk, AISuggestion, AuditLog, FollowUpTask,
     CustomerTag, CustomerProfile, Recommendation, QualityRule, QualityInspectionResult, QualityAlert,
     RiskCase, BlacklistCustomer,
-    ERPInventorySnapshot, OrderAuditSnapshot, OrderExceptionSnapshot
+    ERPInventorySnapshot, OrderAuditSnapshot, OrderExceptionSnapshot,
+    IntegrationSyncStatus
 )
 from shared_db.base import Base
 from app.main import app
@@ -307,3 +308,27 @@ class TestIntegrationAPI:
         assert response.status_code == 200
         data = response.json()
         assert "物流延误" in data["explanation"]
+
+    def test_sync_status_api_returns_404_when_no_sync(self, client):
+        """Test GET /api/integration/sync-status returns 404 when no sync has occurred"""
+        response = client.get("/api/integration/sync-status")
+        assert response.status_code == 404
+
+    def test_sync_status_api_returns_latest(self, client, db_session):
+        """Test GET /api/integration/sync-status returns latest sync status"""
+        from app.services.integration_service import IntegrationService
+        from providers.odoo.mock.provider import OdooMockProvider
+        
+        provider = OdooMockProvider()
+        service = IntegrationService(db_session, odoo_provider=provider)
+        service.refresh_from_provider()
+        
+        response = client.get("/api/integration/sync-status")
+        assert response.status_code == 200
+        data = response.json()
+        assert data["status"] == "success"
+        assert data["inventory_count"] == 2
+        assert data["audit_count"] == 2
+        assert data["exception_count"] == 2
+        assert data["provider_mode"] == "mock"
+        assert data["trigger_type"] == "manual"

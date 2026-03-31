@@ -2,115 +2,80 @@
 
 Omni-CSX V3 是在 V1 稳定基线与 V2 最小版本收口基础上，进入“接近商用完整版平台”的阶段。
 
-V1 解决的是“统一接待 + 统一上下文 + AI 建议回复”。
-V2 解决的是“推荐、跟单、标签画像、运营任务、基础分析、轻量风险提醒”。
-V3 要解决的是：
-
-- 质检
-- 风控
-- ERP / OMS / WMS 业务联动
-- 管理分析与训练沉淀
-
-V3 的本质，不是继续补功能点，而是把系统从“客服运营工具”升级为“可管理、可追责、可优化、可联动”的平台。
+当前 V3 不再处于“设计中”或“部分实现中”状态。\
+当前 V3 已完成 MVP 闭环，并已形成完整的四阶段交付结果。
 
 ***
 
-## 一、V3 的目标
+## 一、V3 当前状态
 
-V3 要把系统能力提升到以下层面：
+V3 当前状态：
 
-1. 管理能力
-   主管、店长、运营负责人能够看到质检结果、风险趋势、绩效与人机协同数据。
-2. 风控能力
-   系统能够识别负面情绪、投诉倾向、黑名单客户和高风险会话，并对运营、营销和客服动作进行约束。
-3. 业务联动能力
-   系统能够接入 ERP / OMS / WMS 等内部业务状态，让客服回复、推荐、安抚不再只依赖平台消息，而是依赖真实库存、审核状态、异常订单信息。
-4. 训练与优化能力
-   系统能够把会话沉淀为 VOC 主题、培训案例、训练任务和管理看板快照，驱动规则优化、培训和运营策略优化。
+- **Phase 1：Quality Inspection Center** —— 已完成
+- **Phase 2：Risk Center** —— 已完成
+- **Phase 3：Integration Center** —— 已完成
+- **Phase 4：Management Analysis / Training Center** —— 已完成
 
-***
+当前 V3 已达到：
 
-## 二、V3 四大核心模块
-
-### 1. 质检中心
-
-目标：
-
-- 发现慢回复、漏答、错答、错误承诺、违禁词、不规范服务话术
-- 输出质检结果、质检证据、质检告警和质检报表
-
-建议子能力：
-
-- 质检规则库
-- 质检任务引擎
-- 质检结果中心
-- 高危告警
-- 按客服 / 店铺 / 平台 / 规则的质检报表
-
-### 2. 风控中心
-
-目标：
-
-- 识别负面情绪、客诉倾向、黑名单、高风险会话
-- 对高风险动作进行策略约束
-- 支持风控升级、转人工、主管复核
-
-建议子能力：
-
-- 情绪识别
-- 客诉识别
-- 黑名单体系
-- 风控策略中心
-- 风控事件列表与处理流
-
-### 3. ERP / OMS / WMS 联动中心
-
-目标：
-
-- 将库存、审核状态、异常订单、延迟发货等内部系统状态接入客服和运营链路
-
-建议子能力：
-
-- 库存查询中心
-- 订单审核状态快照
-- 异常订单快照
-- ERP 状态解释话术
-- ERP 驱动推荐 / 安抚联动
-
-### 4. 管理分析与训练中心
-
-目标：
-
-- 从执行数据沉淀为可管理、可训练、可优化的数据资产
-
-建议子能力：
-
-- VOC 主题洞察
-- 培训案例沉淀
-- 训练任务生成
-- 管理看板快照
-- 规则优化建议
+- backend 最小闭环完成
+- Admin Console 最小验证入口完成
+- 各阶段页面状态验证完成
+- 可作为阶段收口节点
+- 可作为后续版本规划基线
 
 ***
 
-## 三、V3 明确不做的范围
+## 二、V3 的目标（已达成的 MVP 范围）
 
-V3 不做以下内容：
+V3 的目标不是继续补若干客服功能，而是把系统从“客服运营工具”升级成“可管理、可追责、可优化、可联动”的平台。
 
-- 完整多租户商用 SaaS 全量能力
-- 一次性接通所有真实平台 provider
-- 深度学习质检模型训练平台
-- BI 平台级自定义报表引擎
-- 完全自动营销闭环
-- 完全自动售后闭环
-- Deep Agents 主链路化
-- 重写 V1/V2 现有架构
+V3 MVP 已完成以下 4 个核心模块：
+
+### 1. Quality Inspection Center
+
+已完成能力：
+
+- 质检规则管理
+- 单会话质检执行
+- 质检结果查询
+- 质检告警查询
+- Admin Console 最小验证页
+
+### 2. Risk Center
+
+已完成能力：
+
+- 风险事件管理
+- 黑名单客户管理
+- 风险状态流转
+- Admin Console 最小验证页
+
+### 3. Integration Center
+
+已完成能力：
+
+- 库存快照写入与查询
+- 订单审核状态快照写入与查询
+- 异常订单快照写入与查询
+- 状态解释输出
+- Admin Console 最小验证页
+
+### 4. Management Analysis / Training Center
+
+已完成能力：
+
+- VOC 主题沉淀与查询
+- 培训案例沉淀与查询
+- 训练任务创建与查询
+- 管理看板快照生成与查询
+- Admin Console 最小验证页
 
 ***
 
-## 四、V3 的工程原则
+## 三、V3 MVP 的工程原则
 
-V3 必须继续继承 V1/V2 的工程原则：
+V3 MVP 继续遵守以下工程原则：
 
 - mock-first
 - provider pattern
@@ -123,89 +88,180 @@ V3 必须继续继承 V1/V2 的工程原则：
 - backend 先于 frontend
 - 不破坏既有 stable baseline
 
-开发顺序固定为：
+固定开发顺序：
 
 schema/database -> repository -> service -> API -> OpenAPI -> tests -> frontend
 
 ***
 
-## 五、V3 的技术约束
+## 四、V3 已完成的阶段结构
 
-### FastAPI
+### Phase 1：Quality Inspection Center
 
-继续作为主业务框架，负责所有业务 API、管理 API、后台 API、OpenAPI。
+已完成：
 
-### LangChain
+- QualityRule
+- QualityInspectionResult
+- QualityAlert
+- 质检执行接口
+- 规则查询接口
+- 结果查询接口
+- 告警查询接口
+- Admin Console 最小验证入口
 
-用于：
+### Phase 2：Risk Center
 
-- 质检解释
-- 风控解释
-- ERP 状态解释话术
-- VOC 抽取与总结
-- 培训案例摘要
-- 规则解释输出
+已完成：
 
-### LangGraph
+- RiskCase
+- BlacklistCustomer
+- 风险事件查询
+- 风险状态流转
+- 黑名单管理
+- Admin Console 最小验证入口
 
-用于：
+### Phase 3：Integration Center
 
-- 质检工作流
-- 风控升级工作流
-- ERP 异常安抚工作流
-- VOC / 训练样本沉淀工作流
+已完成：
 
-### Deep Agents
+- ERPInventorySnapshot
+- OrderAuditSnapshot
+- OrderExceptionSnapshot
+- 快照写入接口
+- 快照读取接口
+- explain-status 接口
+- Admin Console 最小验证入口
 
-仅在 V3 旁路分析任务中使用：
+### Phase 4：Management Analysis / Training Center
 
-- VOC 深度分析
-- 培训案例自动归纳
-- 策略优化建议
-  不进入主链路。
+已完成：
 
-***
-
-## 六、V3 推荐推进顺序
-
-### Phase 1
-
-质检中心最小闭环
-
-### Phase 2
-
-风控中心最小闭环
-
-### Phase 3
-
-ERP / OMS / WMS 联动最小闭环
-
-### Phase 4
-
-管理分析与训练中心最小闭环
-
-说明：
-不要并行推进多个中心。
-每一阶段都必须形成可提交、可测试、可验证的最小版本。
+- VOCTopic
+- TrainingCase
+- TrainingTask
+- ManagementDashboardSnapshot
+- 创建接口
+- 列表接口
+- Admin Console 最小验证入口
 
 ***
 
-## 七、V3 推荐目录结构
+## 五、V3 当前明确未做内容
 
-```text
-.ai/
-  v3/
-    agent.md
-    README.md
-    V3_ROADMAP.md
-    prompts/
-      V3_MASTER_PROMPT.txt
-      V3_TASK_BREAKDOWN.txt
+尽管 V3 MVP 已完成，但以下内容仍未纳入当前版本：
 
-apps/
-  quality-inspection-service/      # 如决定独立拆服务
-  risk-center-service/             # 如决定独立拆服务
-  integration-service/             # ERP / OMS / WMS
-  training-service/                # VOC / training / dashboard（如决定独立拆）
-```
+### 质检 / 风控增强
 
+- 批量质检
+- 规则启停增强
+- 自动风险识别
+- 风险规则引擎
+- 流式风控
+
+### Integration 增强
+
+- 真实 ERP / OMS / WMS 对接
+- 自动刷新 / 定时同步
+- 写回 ERP
+- 复杂 explain-status 话术增强
+
+### Management / Training 增强
+
+- 按 ID 详情查询 API
+- occurrence\_count 自动更新逻辑
+- 从 conversation 自动抽取 VOC Topic
+- 从 conversation 自动沉淀 Training Case
+- 复杂训练流程引擎
+
+### 可视化增强
+
+- dashboard 大屏
+- 图表系统
+- 自定义 BI 平台
+- 复杂筛选、分页、排序、过滤
+
+### 平台级增强
+
+- Deep Agents 主链路化
+- 深度学习训练平台
+- 自动优化系统
+
+***
+
+## 六、V3 当前推荐定位
+
+当前 V3 推荐定位为：
+
+**V3 MVP Completed**
+
+这意味着：
+
+- 可以作为交接节点
+- 可以作为演示节点
+- 可以作为后续版本规划基线
+- 不建议继续在当前版本上无边界叠加功能
+
+***
+
+## 七、V3 后续建议方向
+
+如果后续继续推进，建议方向如下：
+
+### 1. 真实业务联动增强
+
+- 接真实 ERP / OMS / WMS
+- 接真实审核与异常状态来源
+
+### 2. 自动沉淀增强
+
+- 从 conversation 自动抽取 VOC
+- 从 conversation 自动沉淀 Training Case
+- occurrence\_count 自动更新
+
+### 3. 可视化增强
+
+- 管理看板增强
+- 图表与 dashboard
+- 更丰富的多维度统计
+
+### 4. 智能增强
+
+- 更复杂的质检与风控规则
+- explain-status 增强
+- 更强的训练与优化能力
+
+***
+
+## 八、V3 文档结构
+
+当前 V3 相关文件包括：
+
+.ai/v3/
+agent.md
+README.md
+V3\_ROADMAP.md
+V3\_ACCEPTANCE\_CHECKLIST.md
+prompts/
+V3\_MASTER\_PROMPT.txt
+V3\_TASK\_BREAKDOWN.txt
+V3\_BACKEND\_PROMPT.txt
+V3\_FRONTEND\_PROMPT.txt
+V3\_DATA\_AND\_RULES\_PROMPT.txt
+V3\_PHASE0\_PROMPT.txt
+
+***
+
+## 九、V3 当前建议
+
+当前不要继续把 V3 当成“持续开发中的无限阶段”。
+
+正确做法是：
+
+1. 将当前 V3 定义为 MVP 完成态
+2. 完成 README / checklist / roadmap 同步
+3. 完成 Git / tag 收口
+4. 再基于 V3 MVP 规划下一阶段
+
+一句话结论：
+
+**Omni-CSX V3 MVP 已完成。当前应先收口，再规划下一阶段。**

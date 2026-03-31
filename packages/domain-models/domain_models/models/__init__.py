@@ -9,6 +9,7 @@ from domain_models.models.customer_profile import CustomerProfile
 from domain_models.models.customer_tag import CustomerTag
 from domain_models.models.erp_inventory_snapshot import ERPInventorySnapshot
 from domain_models.models.follow_up_task import FollowUpTask
+from domain_models.models.integration_sync_status import IntegrationSyncStatus
 from domain_models.models.kb_chunk import KBChunk
 from domain_models.models.kb_document import KBDocument
 from domain_models.models.management_dashboard_snapshot import ManagementDashboardSnapshot
@@ -47,6 +48,7 @@ __all__ = [
     "BlacklistCustomer",
     "ERPInventorySnapshot",
     "FollowUpTask",
+    "IntegrationSyncStatus",
     "ManagementDashboardSnapshot",
     "OrderAuditSnapshot",
     "OrderExceptionSnapshot",

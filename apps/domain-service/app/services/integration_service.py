@@ -1,10 +1,11 @@
 from datetime import datetime
-from typing import Optional
+from typing import Any, Optional
 from sqlalchemy.orm import Session
 
 from app.repositories.erp_inventory_snapshot_repository import ERPInventorySnapshotRepository
 from app.repositories.order_audit_snapshot_repository import OrderAuditSnapshotRepository
 from app.repositories.order_exception_snapshot_repository import OrderExceptionSnapshotRepository
+from app.repositories.integration_sync_status_repository import IntegrationSyncStatusRepository
 from app.services.audit_service import AuditService
 from domain_models.models.erp_inventory_snapshot import ALLOWED_INVENTORY_STATUSES
 from domain_models.models.order_audit_snapshot import ALLOWED_AUDIT_STATUSES
@@ -12,12 +13,14 @@ from domain_models.models.order_exception_snapshot import ALLOWED_EXCEPTION_TYPE
 
 
 class IntegrationService:
-    def __init__(self, db_session: Session):
+    def __init__(self, db_session: Session, odoo_provider: Optional[Any] = None):
         self._db_session = db_session
         self._inventory_repo = ERPInventorySnapshotRepository(db_session)
         self._audit_repo = OrderAuditSnapshotRepository(db_session)
         self._exception_repo = OrderExceptionSnapshotRepository(db_session)
+        self._sync_status_repo = IntegrationSyncStatusRepository(db_session)
         self._audit_service = AuditService(db_session=db_session)
+        self._odoo_provider = odoo_provider
 
     def _inventory_to_dict(self, snapshot) -> dict:
         return {
@@ -312,3 +315,235 @@ class IntegrationService:
             "explanation": explanation,
             "suggestion": suggestion
         }
+
+    def refresh_from_provider(self, trigger_type: str = "manual") -> dict:
+        """Refresh snapshots from the injected Odoo provider.
+        
+        Returns a summary of created snapshots.
+        If no provider is injected, returns an empty result with a message.
+        """
+        provider_mode = "mock" if hasattr(self._odoo_provider, '__class__') and 'Mock' in self._odoo_provider.__class__.__name__ else "real"
+        
+        sync_status = self._sync_status_repo.create(
+            trigger_type=trigger_type,
+            provider_mode=provider_mode,
+            started_at=datetime.utcnow(),
+        )
+        
+        if self._odoo_provider is None:
+            self._sync_status_repo.update(
+                sync_status,
+                status="failed",
+                error_summary="No Odoo provider configured",
+            )
+            return {
+                "inventory_count": 0,
+                "audit_count": 0,
+                "exception_count": 0,
+                "message": "No Odoo provider configured"
+            }
+
+        try:
+            inventory_list = self._odoo_provider.get_inventory_list()
+            audit_list = self._odoo_provider.get_order_audit_list()
+            exception_list = self._odoo_provider.get_order_exception_list()
+
+            inventory_count = 0
+            for inv in inventory_list:
+                self._inventory_repo.create(
+                    sku_code=inv["sku_code"],
+                    warehouse_code=inv["warehouse_code"],
+                    available_qty=inv["available_qty"],
+                    reserved_qty=inv.get("reserved_qty", 0),
+                    status=inv.get("status", "normal"),
+                    source_json=inv.get("source_json"),
+                    snapshot_at=datetime.utcnow()
+                )
+                inventory_count += 1
+
+            audit_count = 0
+            for audit in audit_list:
+                self._audit_repo.create(
+                    order_id=audit["order_id"],
+                    platform=audit["platform"],
+                    audit_status=audit["audit_status"],
+                    audit_reason=audit.get("audit_reason"),
+                    source_json=audit.get("source_json"),
+                    snapshot_at=datetime.utcnow()
+                )
+                audit_count += 1
+
+            exception_count = 0
+            for exc in exception_list:
+                self._exception_repo.create(
+                    order_id=exc["order_id"],
+                    platform=exc["platform"],
+                    exception_type=exc["exception_type"],
+                    exception_status=exc["exception_status"],
+                    detail_json=exc.get("detail_json"),
+                    snapshot_at=datetime.utcnow()
+                )
+                exception_count += 1
+
+            self._sync_status_repo.update(
+                sync_status,
+                status="success",
+                inventory_count=inventory_count,
+                audit_count=audit_count,
+                exception_count=exception_count,
+            )
+
+            return {
+                "inventory_count": inventory_count,
+                "audit_count": audit_count,
+                "exception_count": exception_count,
+                "message": "Snapshots refreshed successfully"
+            }
+        except Exception as e:
+            self._sync_status_repo.update(
+                sync_status,
+                status="failed",
+                error_summary=str(e),
+            )
+            raise
+
+    def get_latest_sync_status(self) -> Optional[dict]:
+        """Get the latest sync status record."""
+        sync_status = self._sync_status_repo.get_latest()
+        if sync_status is None:
+            return None
+        return {
+            "id": sync_status.id,
+            "trigger_type": sync_status.trigger_type,
+            "provider_mode": sync_status.provider_mode,
+            "started_at": sync_status.started_at.isoformat() if sync_status.started_at else None,
+            "finished_at": sync_status.finished_at.isoformat() if sync_status.finished_at else None,
+            "status": sync_status.status,
+            "error_summary": sync_status.error_summary,
+            "inventory_count": sync_status.inventory_count,
+            "audit_count": sync_status.audit_count,
+            "exception_count": sync_status.exception_count,
+        }
+
+    def refresh_inventory(self, trigger_type: str = "scheduled") -> dict:
+        """Refresh inventory snapshots from the injected Odoo provider.
+        
+        Args:
+            trigger_type: Type of trigger (manual/scheduled/api)
+            
+        Returns:
+            Summary of created snapshots.
+        """
+        provider_mode = "mock" if hasattr(self._odoo_provider, '__class__') and 'Mock' in self._odoo_provider.__class__.__name__ else "real"
+        
+        sync_status = self._sync_status_repo.create(
+            trigger_type=trigger_type,
+            provider_mode=provider_mode,
+            started_at=datetime.utcnow(),
+        )
+        
+        if self._odoo_provider is None:
+            self._sync_status_repo.update(
+                sync_status,
+                status="failed",
+                error_summary="No Odoo provider configured",
+            )
+            return {
+                "inventory_count": 0,
+                "message": "No Odoo provider configured"
+            }
+
+        try:
+            inventory_list = self._odoo_provider.get_inventory_list()
+
+            inventory_count = 0
+            for inv in inventory_list:
+                self._inventory_repo.create(
+                    sku_code=inv["sku_code"],
+                    warehouse_code=inv["warehouse_code"],
+                    available_qty=inv["available_qty"],
+                    reserved_qty=inv.get("reserved_qty", 0),
+                    status=inv.get("status", "normal"),
+                    source_json=inv.get("source_json"),
+                    snapshot_at=datetime.utcnow()
+                )
+                inventory_count += 1
+
+            self._sync_status_repo.update(
+                sync_status,
+                status="success",
+                inventory_count=inventory_count,
+            )
+
+            return {
+                "inventory_count": inventory_count,
+                "message": "Inventory snapshots refreshed successfully"
+            }
+        except Exception as e:
+            self._sync_status_repo.update(
+                sync_status,
+                status="failed",
+                error_summary=str(e),
+            )
+            raise
+
+    def refresh_audit(self, trigger_type: str = "scheduled") -> dict:
+        """Refresh audit snapshots from the injected Odoo provider.
+        
+        Args:
+            trigger_type: Type of trigger (manual/scheduled/api)
+            
+        Returns:
+            Summary of created snapshots.
+        """
+        provider_mode = "mock" if hasattr(self._odoo_provider, '__class__') and 'Mock' in self._odoo_provider.__class__.__name__ else "real"
+        
+        sync_status = self._sync_status_repo.create(
+            trigger_type=trigger_type,
+            provider_mode=provider_mode,
+            started_at=datetime.utcnow(),
+        )
+        
+        if self._odoo_provider is None:
+            self._sync_status_repo.update(
+                sync_status,
+                status="failed",
+                error_summary="No Odoo provider configured",
+            )
+            return {
+                "audit_count": 0,
+                "message": "No Odoo provider configured"
+            }
+
+        try:
+            audit_list = self._odoo_provider.get_order_audit_list()
+
+            audit_count = 0
+            for audit in audit_list:
+                self._audit_repo.create(
+                    order_id=audit["order_id"],
+                    platform=audit["platform"],
+                    audit_status=audit["audit_status"],
+                    audit_reason=audit.get("audit_reason"),
+                    source_json=audit.get("source_json"),
+                    snapshot_at=datetime.utcnow()
+                )
+                audit_count += 1
+
+            self._sync_status_repo.update(
+                sync_status,
+                status="success",
+                audit_count=audit_count,
+            )
+
+            return {
+                "audit_count": audit_count,
+                "message": "Audit snapshots refreshed successfully"
+            }
+        except Exception as e:
+            self._sync_status_repo.update(
+                sync_status,
+                status="failed",
+                error_summary=str(e),
+            )
+            raise

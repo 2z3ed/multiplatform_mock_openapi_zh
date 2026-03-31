@@ -86,3 +86,19 @@ class ExplainStatusRequest(BaseModel):
 class ExplainStatusResponse(BaseModel):
     explanation: str
     suggestion: str
+
+
+class SyncStatusResponse(BaseModel):
+    id: int
+    trigger_type: str
+    provider_mode: str
+    started_at: Optional[str] = None
+    finished_at: Optional[str] = None
+    status: str
+    error_summary: Optional[str] = None
+    inventory_count: int
+    audit_count: int
+    exception_count: int
+
+    class Config:
+        from_attributes = True

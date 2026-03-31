@@ -1,0 +1,182 @@
+你现在执行 Omni-CSX V3.5 的核心任务：
+
+Odoo Integration Phase 1
+
+当前任务不是讨论，不是泛化设计，而是按既定边界完成第一阶段真实只读接入。
+
+当前前提：
+1. Omni-CSX 已完成 V3 四个 MVP 闭环
+2. 当前阶段为 V3.5
+3. 当前目标是把 Phase 3 Integration Center 从 mock / seed 数据源升级为 Odoo 真实数据源
+4. 保持 Provider Pattern
+5. 保持 Snapshot 中间层
+6. 保持现有 /api/integration/* 与 explain-status 尽量兼容
+7. 不进入写回，不进入 V4
+
+开始前必须先读：
+1. .ai/v3_5/agent.md
+2. .ai/v3_5/README.md
+3. .ai/v3_5/V3_5_ROADMAP.md
+4. .ai/v3_5/V3_5_ACCEPTANCE_CHECKLIST.md
+5. .ai/v3_5/prompts/V3_5_MASTER_PROMPT.txt
+6. .ai/v3_5/prompts/V3_5_BACKEND_PROMPT.txt
+
+一、本轮唯一目标
+
+完成 Odoo Integration Phase 1 的 backend 最小闭环，使下列能力从 mock/seed 变为真实 Odoo provider 驱动：
+
+1. inventory snapshot
+2. order audit snapshot
+3. order exception snapshot
+4. explain-status
+
+二、本轮必须坚持的架构
+
+统一采用：
+
+Odoo -> providers/odoo/real -> provider-sdk abstraction -> integration_service -> snapshot tables -> /api/integration/* -> frontend
+
+不允许采用：
+
+1. 前端直接请求 Odoo
+2. API 直接透传 Odoo 原始返回
+3. 跳过 snapshot 表直接返回 real provider 结果
+4. 在 service 中写死 Odoo 原始字段逻辑而不经过 provider 抽象
+
+三、本轮范围
+
+只做以下工作：
+
+1. 新增或完善 providers/odoo/mock
+2. 新增或完善 providers/odoo/real
+3. 在 provider-sdk 中定义或补齐 Odoo inventory / order-audit / order-exception 接口抽象
+4. 改造 integration_service，使其支持 mock / real provider 切换
+5. 将 Odoo 数据映射并写入现有 snapshot 表
+6. 保持现有 integration API 可用
+7. 保持 explain-status 基于 snapshot 工作
+8. 补齐 tests
+9. 完成 Admin Console 最小页面验证
+
+四、本轮明确不做
+
+1. 不写回 Odoo
+2. 不改 Odoo 订单状态
+3. 不改 Odoo 库存
+4. 不做采购、财务、售后等深度业务接入
+5. 不做复杂双向同步
+6. 不做 webhook 平台化
+7. 不做调度系统平台化
+8. 不做复杂事件总线
+9. 不做复杂 BI
+10. 不做大屏
+11. 不做 V4 功能
+12. 不重写现有 Integration Center
+
+五、建议的第一阶段真实接入对象
+
+A. Inventory
+从 Odoo 获取：
+- sku_code
+- warehouse_code
+- available_qty
+- reserved_qty
+- status
+- 原始 payload
+
+B. Order Audit / Order State
+从 Odoo 获取：
+- order_id
+- platform 或内部来源标识
+- audit_status 或最接近的订单审核/状态字段
+- audit_reason
+- 原始 payload
+
+C. Order Exception / Fulfillment Exception
+从 Odoo 获取：
+- order_id
+- platform 或内部来源标识
+- exception_type
+- exception_status
+- detail_json
+
+注意：
+如果 Odoo 本身没有与你当前命名完全一致的对象，不要硬找一模一样字段。
+要做的是：
+- 在 provider 层完成最小语义映射
+- 再映射到 Omni-CSX 现有 snapshot 结构
+
+六、Odoo 接入实现要求
+
+1. 优先使用 Odoo External API
+2. 第一阶段不要要求开发 Odoo 自定义模块
+3. 连接参数必须通过配置注入，不要硬编码
+4. provider 层必须明确区分：
+   - 连接
+   - 读取
+   - 映射
+   - 错误处理
+5. 当 Odoo 不可用时：
+   - service 层要有明确降级行为
+   - 系统可继续读取最近一次 snapshot
+   - API 返回必须可解释
+
+七、mock / real 切换要求
+
+必须支持：
+- local/mock 模式
+- real/odoo 模式
+
+要求：
+1. mock 模式继续可测试
+2. real 模式可连接真实 Odoo
+3. 切换通过配置完成
+4. 不通过改代码手工切换
+
+八、开始编码前先输出执行确认
+
+先不要直接写代码，请先输出：
+
+1. Odoo Integration Phase 1 的一句话定义
+2. 本轮实际范围
+3. 本轮明确不做的内容
+4. 将新增/修改的文件清单
+5. provider 设计清单
+6. provider-sdk 抽象清单
+7. integration_service 改造点
+8. snapshot 写入策略
+9. API 兼容策略
+10. tests 计划
+11. 风险点
+12. 当前预计先做 backend 还是同时验证 frontend
+
+九、编码阶段顺序
+
+正式开始后，严格按以下顺序执行：
+
+1. 检查现有 Phase 3 integration 代码结构
+2. 明确 mock / real provider 接口
+3. 实现 Odoo real provider
+4. 改造 integration_service
+5. 验证 snapshot 写入
+6. 验证 /api/integration/* 兼容
+7. 验证 explain-status
+8. 补 tests
+9. 验证 Admin Console 页面
+
+十、最终输出格式
+
+编码完成后请只输出：
+
+1. 实际修改的文件清单
+2. provider 层实现结果
+3. integration_service 改造结果
+4. snapshot 写入结果
+5. API 兼容验证结果
+6. explain-status 验证结果
+7. tests 结果
+8. 前端验证结果
+9. 当前 V3.5 Phase A 是否已完成
+10. 如果还未完成，唯一阻塞项是什么
+
+一句话要求：
+现在执行的是 Odoo 真实只读接入，不是重写项目，不是开新中心，不是进入 V4，而是在现有 V3 Integration Center 上做最小、稳定、可验收的真实集成强化。

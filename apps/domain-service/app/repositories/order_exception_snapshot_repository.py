@@ -74,3 +74,58 @@ class OrderExceptionSnapshotRepository:
         self.db.delete(snapshot)
         self.db.commit()
         return True
+
+    def cleanup_old_snapshots(
+        self,
+        retention_days: int = 7,
+        dry_run: bool = True,
+    ) -> dict:
+        """Cleanup old snapshots based on retention days.
+        
+        Args:
+            retention_days: Number of days to retain snapshots.
+            dry_run: If True, only preview without deleting.
+            
+        Returns:
+            dict with total_count, to_delete_count, protected_count, deleted_count
+        """
+        from datetime import timedelta
+        from sqlalchemy import and_
+        
+        cutoff_date = datetime.utcnow() - timedelta(days=retention_days)
+        
+        total_count = self.db.query(OrderExceptionSnapshot).count()
+        
+        latest_snapshot = (
+            self.db.query(OrderExceptionSnapshot)
+            .order_by(OrderExceptionSnapshot.snapshot_at.desc())
+            .first()
+        )
+        
+        protected_ids = []
+        if latest_snapshot:
+            protected_ids.append(latest_snapshot.id)
+        
+        to_delete_query = self.db.query(OrderExceptionSnapshot).filter(
+            and_(
+                OrderExceptionSnapshot.snapshot_at < cutoff_date,
+                OrderExceptionSnapshot.id.notin_(protected_ids) if protected_ids else True,
+            )
+        )
+        
+        to_delete_count = to_delete_query.count()
+        protected_count = len(protected_ids)
+        deleted_count = 0
+        
+        if not dry_run and to_delete_count > 0:
+            for snapshot in to_delete_query.all():
+                self.db.delete(snapshot)
+            self.db.commit()
+            deleted_count = to_delete_count
+        
+        return {
+            "total_count": total_count,
+            "to_delete_count": to_delete_count,
+            "protected_count": protected_count,
+            "deleted_count": deleted_count,
+        }

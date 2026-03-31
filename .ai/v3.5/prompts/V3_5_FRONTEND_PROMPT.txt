@@ -1,0 +1,163 @@
+你现在开始 Omni-CSX V3.5 的 frontend 工作。
+
+当前前提：
+1. V1 已完成并冻结
+2. V2 已完成最小版本并收口
+3. V3 四个 Phase 已完成 MVP 闭环
+4. 当前阶段是 V3.5，不是 V4
+5. 当前 V3.5 的核心目标是：完成 Odoo Real Integration Phase
+6. 当前 frontend 任务只服务于 Odoo Integration Phase 1 的验收，不做大范围前端重构
+
+开始前必须先读：
+1. .ai/v3_5/agent.md
+2. .ai/v3_5/README.md
+3. .ai/v3_5/V3_5_ROADMAP.md
+4. .ai/v3_5/V3_5_ACCEPTANCE_CHECKLIST.md
+5. .ai/v3_5/prompts/V3_5_MASTER_PROMPT.txt
+6. .ai/v3_5/prompts/V3_5_BACKEND_PROMPT.txt
+
+当前唯一任务：
+在现有 Integration Center 的 Admin Console 页面基础上，完成 Odoo Real Integration Phase 1 的最小前端验证入口与验收支持。
+
+一、本轮目标
+
+只做以下页面和代理能力的验证与最小补齐：
+
+1. /integration/inventory
+2. /integration/order-audits
+3. /integration/order-exceptions
+
+目标不是做新界面，而是确保：
+- 当前页面仍然可访问
+- 当前页面能读取真实 Odoo 驱动的 snapshot 数据
+- 页面状态明确
+- 不需要推翻 V3 Phase 3 既有页面结构
+
+二、本轮允许范围
+
+只允许做：
+
+1. Admin Console 同源 API route 的最小补齐或修正
+2. 现有 integration 页面的小范围修正
+3. loading / empty / error / normal 四态校验
+4. 错误文案、空态文案、正常列表展示的最小补齐
+5. 如有必要，首页入口的最小补齐
+
+三、本轮禁止事项
+
+1. 不要重做 Integration Center 前端结构
+2. 不要新增 dashboard
+3. 不要新增图表
+4. 不要新增复杂筛选
+5. 不要新增分页、排序、过滤系统
+6. 不要新增详情页，除非已有页面结构阻塞
+7. 不要让前端直接访问 Odoo
+8. 不要改 backend API 契约
+9. 不要扩到 Phase B 写回能力
+10. 不要进入 V4
+11. 不要改 Agent Console
+12. 不要新增复杂 explain-status 页面
+
+四、数据来源要求
+
+必须遵守：
+
+1. 前端只能通过 Admin Console 的同源 API route 获取数据
+2. 同源 API route 再代理到 Omni-CSX backend
+3. backend 再通过 snapshot 读取数据
+4. 前端不能直接请求 Odoo
+5. 前端不能依赖 Odoo 原始字段结构
+6. 前端只能消费 Omni-CSX 标准化 schema
+
+五、本轮页面要求
+
+以下页面必须支持四态：
+
+1. /integration/inventory
+2. /integration/order-audits
+3. /integration/order-exceptions
+
+四态要求：
+- loading：页面加载中
+- empty：后端无数据时的合理空状态
+- error：后端报错或代理失败时的可解释错误态
+- normal：成功展示真实 snapshot 数据
+
+六、建议展示字段
+
+A. /integration/inventory
+至少展示：
+- sku_code
+- warehouse_code
+- available_qty
+- reserved_qty
+- status
+- snapshot_at
+
+B. /integration/order-audits
+至少展示：
+- order_id
+- platform
+- audit_status
+- audit_reason
+- snapshot_at
+
+C. /integration/order-exceptions
+至少展示：
+- order_id
+- platform
+- exception_type
+- exception_status
+- snapshot_at
+
+七、开始前先做诊断，不要先写代码
+
+请先输出以下内容：
+
+1. 当前 Admin Console 中 integration 相关页面是否已存在
+2. 当前 Admin Console 中同源 API route 是否已存在
+3. 当前 backend integration API 实际路径确认结果
+4. 当前页面是否需要修改
+5. 本轮将新增或修改的文件清单
+6. 本轮最小实现方案
+7. 本轮明确不做的内容
+
+八、实现要求
+
+1. 页面风格保持最小、简洁、可管理后台化
+2. 优先复用 Phase 3 已有页面
+3. 只做兼容性修正和真实数据验证
+4. 错误态必须能说明是代理失败、后端失败还是无数据
+5. 如果 backend 已返回真实数据，页面应进入 normal
+6. 如果 backend 暂时不可用，页面要进入可解释错误态，不要空白
+
+九、验证要求
+
+完成后必须真实验证：
+
+1. Admin Console 首页入口是否正常
+2. /integration/inventory 是否可访问
+3. /integration/order-audits 是否可访问
+4. /integration/order-exceptions 是否可访问
+5. /api/integration/inventory 是否代理正常
+6. /api/integration/order-audits 是否代理正常
+7. /api/integration/order-exceptions 是否代理正常
+
+并输出每个页面状态：
+- empty
+- normal
+- error
+
+十、最终输出格式
+
+请最终只输出：
+
+1. 实际修改的文件清单
+2. 每个文件修改的目的
+3. 实际使用的 API route 清单
+4. 每个页面最终状态
+5. 当前 V3.5 Phase A 前端是否已完成最小验证闭环
+6. 如果还没完成，唯一阻塞项是什么
+
+一句话要求：
+当前 frontend 工作不是做新功能，而是让现有 Integration Center 页面在接入 Odoo 真实数据后继续稳定可用，并可完成验收。

@@ -1,0 +1,63 @@
+你现在进入 Omni-CSX 的 V3.5 阶段。
+
+当前状态：
+1. V1 已完成并冻结
+2. V2 已完成最小版本并收口
+3. V3 四个 Phase 已完成 MVP 闭环
+4. 当前阶段不是 V4，而是 V3.5
+5. 当前 V3.5 的唯一目标是：完成 Odoo Real Integration Phase
+
+开始前必须先读：
+1. .ai/v3_5/agent.md
+2. .ai/v3_5/README.md
+3. .ai/v3_5/V3_5_ROADMAP.md
+4. .ai/v3_5/V3_5_ACCEPTANCE_CHECKLIST.md
+5. .ai/v3_5/prompts/V3_5_BACKEND_PROMPT.txt
+
+当前阶段的系统角色分工：
+- Omni-CSX 继续作为客服 / AI / 运营中台
+- Odoo 作为 ERP / OMS / Inventory / Warehouse 业务底座
+
+当前阶段的总原则：
+1. 不推翻现有 V3 Integration Center
+2. 不让前端直接连接 Odoo
+3. 保持 Provider Pattern
+4. 保持 Snapshot 中间层
+5. 保持现有 `/api/integration/*` 尽可能兼容
+6. 保持 explain-status 能继续工作
+7. 先 backend，后 frontend
+8. 小范围闭环，不发散
+
+当前阶段只允许做：
+- Odoo provider 设计与实现
+- integration service 改造
+- snapshot 刷新
+- integration API 保持兼容
+- tests
+- Admin Console 验证
+
+当前阶段明确禁止：
+- 不进入 V4
+- 不重写 Omni-CSX 架构
+- 不让前端绕过中台直接读 Odoo
+- 不做真实写回
+- 不做库存写回
+- 不做自动出库
+- 不做复杂双向同步
+- 不做调度平台
+- 不做复杂 BI
+- 不做 Deep Agents 主链路化
+
+当前默认开发顺序：
+1. 先输出设计确认
+2. 再做 provider
+3. 再做 service
+4. 再做 API
+5. 再做 tests
+6. 再做 frontend 验证
+
+如果任务没有特别说明，默认先做：
+Odoo Integration Phase 1（只读接入）
+
+一句话要求：
+当前阶段的核心不是新增功能中心，而是把 V3 的 mock integration 升级为真实 Odoo integration。

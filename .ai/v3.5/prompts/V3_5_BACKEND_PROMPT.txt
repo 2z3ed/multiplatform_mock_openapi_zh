@@ -1,0 +1,130 @@
+你现在开始 Omni-CSX V3.5 的 backend 工作。
+
+当前唯一任务：
+实现 Odoo Integration Phase 1（只读接入）。
+
+目标：
+在不破坏现有 V3 Integration Center 结构的前提下，将当前 mock / seed 驱动的数据源升级为 Odoo real provider。
+
+开始前必须先读：
+1. .ai/v3_5/agent.md
+2. .ai/v3_5/README.md
+3. .ai/v3_5/V3_5_ROADMAP.md
+4. .ai/v3_5/V3_5_ACCEPTANCE_CHECKLIST.md
+5. .ai/v3_5/prompts/V3_5_MASTER_PROMPT.txt
+
+一、本轮范围
+
+只做以下内容：
+
+1. provider 层
+- providers/odoo/mock
+- providers/odoo/real
+
+2. provider-sdk 层
+- 为 inventory / order-audit / order-exception 增加 Odoo 抽象接口
+- 映射 Odoo 原始字段到 Omni-CSX 的统一结构
+
+3. service 层
+- 改造 integration_service
+- 支持 mock / real provider 切换
+- 支持刷新 inventory snapshot
+- 支持刷新 order audit snapshot
+- 支持刷新 order exception snapshot
+
+4. API 层
+- 继续保持现有 `/api/integration/*`
+- 如有必要，可新增最小 refresh 类内部接口
+- explain-status 必须继续可用
+
+5. tests
+- provider
+- service
+- API
+- explain-status
+- mock/real switch
+
+二、本轮禁止事项
+
+1. 不要重构整个 Integration Center
+2. 不要改前端页面结构
+3. 不要新增复杂新表，除非存在明确阻塞
+4. 不要推翻现有 snapshot 表
+5. 不要让 API 直接透出 Odoo 原始字段
+6. 不要让 frontend 直接访问 Odoo
+7. 不要做真实写回
+8. 不要改库存
+9. 不要改订单
+10. 不要做自动出库
+11. 不要做复杂双向同步
+12. 不要进入 Phase B / Phase C
+13. 不要进入 V4
+
+三、设计要求
+
+1. 必须继续走 Provider Pattern
+2. Odoo real provider 通过 Odoo External API 获取数据
+3. mock provider 继续可用
+4. integration_service 是 provider 与 snapshot 表之间的中间层
+5. 前端与现有 `/api/integration/*` 保持兼容
+6. explain-status 不改成直接解释 Odoo 原始 payload，而是继续解释 snapshot 数据
+
+四、需要处理的数据对象
+
+1. ERPInventorySnapshot
+核心字段至少包括：
+- sku_code
+- warehouse_code
+- available_qty
+- reserved_qty
+- status
+- source_json
+- snapshot_at
+
+2. OrderAuditSnapshot
+核心字段至少包括：
+- order_id
+- platform
+- audit_status
+- audit_reason
+- source_json
+- snapshot_at
+
+3. OrderExceptionSnapshot
+核心字段至少包括：
+- order_id
+- platform
+- exception_type
+- exception_status
+- detail_json
+- snapshot_at
+
+五、执行要求
+
+开始编码前，先只输出以下内容，不要立刻写代码：
+
+1. Odoo Integration Phase 1 的一句话定义
+2. 当前阶段范围
+3. 当前阶段明确不做的内容
+4. 计划新增/修改的文件清单
+5. provider 设计
+6. provider-sdk 设计
+7. integration_service 改造方案
+8. API 兼容策略
+9. tests 计划
+10. 风险点
+
+等方案确认后，再开始编码。
+
+六、编码完成后最终只输出
+
+1. 实际修改的文件清单
+2. provider 层新增内容
+3. service 改造内容
+4. API 兼容结果
+5. tests 结果
+6. 当前 V3.5 Phase A 是否达到闭环
+7. 下一步是什么
+
+一句话要求：
+当前不是重做 Integration Center，而是在现有 Integration Center 上完成 Odoo 的真实只读接入。

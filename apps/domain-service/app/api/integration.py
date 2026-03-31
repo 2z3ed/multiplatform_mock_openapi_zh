@@ -10,6 +10,7 @@ from app.schemas.integration import (
     OrderExceptionSnapshotResponse,
     ExplainStatusRequest,
     ExplainStatusResponse,
+    SyncStatusResponse,
 )
 from app.services.integration_service import IntegrationService
 from shared_db import get_db
@@ -153,3 +154,13 @@ def explain_status(
         return result
     except ValueError as e:
         raise HTTPException(status_code=400, detail=str(e))
+
+
+@router.get("/sync-status", response_model=SyncStatusResponse)
+def get_sync_status(
+    service: IntegrationService = Depends(get_integration_service)
+):
+    result = service.get_latest_sync_status()
+    if result is None:
+        raise HTTPException(status_code=404, detail="No sync status found")
+    return result

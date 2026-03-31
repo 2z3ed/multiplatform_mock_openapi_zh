@@ -17,6 +17,7 @@ from app.api.risk_case import router as risk_case_router
 from app.api.blacklist_customer import router as blacklist_customer_router
 from app.api.integration import router as integration_router
 from app.api.management import router as management_router
+from app.scheduler import start_scheduler, stop_scheduler
 
 app = FastAPI(
     title="Domain Service",
@@ -26,6 +27,16 @@ app = FastAPI(
     redoc_url="/redoc",
     openapi_url="/openapi.json"
 )
+
+
+@app.on_event("startup")
+def on_startup():
+    start_scheduler()
+
+
+@app.on_event("shutdown")
+def on_shutdown():
+    stop_scheduler()
 
 app.include_router(conversations_router)
 app.include_router(context_router)
