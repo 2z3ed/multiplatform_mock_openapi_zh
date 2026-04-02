@@ -2,6 +2,9 @@
 
 import os
 from typing import Optional, Union
+import logging
+
+logger = logging.getLogger(__name__)
 
 
 def get_chat_model(
@@ -10,18 +13,24 @@ def get_chat_model(
     api_key: Optional[str] = None
 ) -> Union["MockChatModel", "RealChatModel"]:
     api_key = api_key or os.getenv("OPENAI_API_KEY", "")
+    base_url = os.getenv("OPENAI_API_BASE") or None
+    model = model_name or os.getenv("OPENAI_MODEL_NAME") or os.getenv("LLM_MODEL", "gpt-4")
+    
+    logger.info(f"Model factory - API Key set: {bool(api_key)}, Base URL: {base_url}, Model: {model}")
     
     if not api_key:
+        logger.warning("No OPENAI_API_KEY found, using MockChatModel")
         return MockChatModel(
-            model_name=model_name or os.getenv("LLM_MODEL", "gpt-4"),
+            model_name=model,
             temperature=temperature,
         )
     
+    logger.info(f"Using RealChatModel with model: {model}")
     return RealChatModel(
-        model_name=model_name or os.getenv("OPENAI_MODEL_NAME", "gpt-4"),
+        model_name=model,
         temperature=temperature,
         api_key=api_key,
-        base_url=os.getenv("OPENAI_API_BASE") or None,
+        base_url=base_url,
     )
 
 

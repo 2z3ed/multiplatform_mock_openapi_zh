@@ -1,4 +1,9 @@
+from pathlib import Path
 from pydantic_settings import BaseSettings, SettingsConfigDict
+
+
+_project_root = Path(__file__).parent.parent.parent.parent
+_env_file = _project_root / ".env"
 
 
 class DatabaseSettings(BaseSettings):
@@ -9,7 +14,7 @@ class DatabaseSettings(BaseSettings):
     postgres_password: str = "omni"
 
     model_config = SettingsConfigDict(
-        env_file=".env",
+        env_file=str(_env_file),
         env_file_encoding="utf-8",
         extra="ignore",
     )

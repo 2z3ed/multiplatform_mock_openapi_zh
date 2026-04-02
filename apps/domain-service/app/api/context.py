@@ -11,6 +11,11 @@ def _get_provider(platform: str):
         if "jd" not in PROVIDER_MAP:
             PROVIDER_MAP["jd"] = JdMockProvider()
         return PROVIDER_MAP["jd"]
+    elif platform == "taobao":
+        from providers.taobao.mock.provider import TaobaoMockProvider
+        if "taobao" not in PROVIDER_MAP:
+            PROVIDER_MAP["taobao"] = TaobaoMockProvider()
+        return PROVIDER_MAP["taobao"]
     elif platform == "douyin_shop":
         from providers.douyin_shop.mock.provider import DouyinShopMockProvider
         if "douyin_shop" not in PROVIDER_MAP:

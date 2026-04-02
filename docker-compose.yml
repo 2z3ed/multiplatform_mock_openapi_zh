@@ -105,6 +105,21 @@ services:
       redis:
         condition: service_healthy
 
+  platform-sim:
+    build:
+      context: ../platform-sim/apps/official-sim-server
+      dockerfile: ../../infra/docker/python-service.Dockerfile
+    working_dir: /workspace/apps/official-sim-server
+    environment:
+      PYTHONPATH: /workspace/apps/official-sim-server:/workspace
+      DATABASE_URL: sqlite:///./official_sim.db
+      LOG_LEVEL: INFO
+    command: ["python", "-m", "uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "9000"]
+    volumes:
+      - ../platform-sim:/workspace
+    ports:
+      - "9000:9000"
+
   mock-platform-server:
     build:
       context: .

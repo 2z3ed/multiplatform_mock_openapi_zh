@@ -376,23 +376,43 @@ export default function ConversationDetailPage() {
         setMessages(msgData.items || []);
         
         const contextMap: Record<string, { platform: string; orderId?: string; afterSaleId?: string; isEcommerce?: boolean }> = {
-          "conv_001": { platform: "jd", orderId: "JD20240315001", afterSaleId: "JD20240315001", isEcommerce: true },
-          "conv_002": { platform: "douyin_shop", orderId: "DY20240315001", afterSaleId: "DY20240315001", isEcommerce: true },
-          "conv_003": { platform: "wecom_kf", isEcommerce: false },
+          "conv1": { platform: "jd", orderId: "304857291638", afterSaleId: "304618372956", isEcommerce: true },
+          "conv2": { platform: "jd", orderId: "304912847563", afterSaleId: "304781234567", isEcommerce: true },
+          "conv3": { platform: "taobao", orderId: "4728561930472815", afterSaleId: "4728391847263951", isEcommerce: true },
+          "conv4": { platform: "taobao", orderId: "4729183746291847", afterSaleId: null, isEcommerce: true },
+          "conv5": { platform: "douyin_shop", orderId: "6847291038472910", afterSaleId: "6846183729104857", isEcommerce: true },
+          "conv6": { platform: "douyin_shop", orderId: "6847391827463910", afterSaleId: "6846291837465029", isEcommerce: true },
+          "conv7": { platform: "wecom_kf", isEcommerce: false },
         };
         const ctx = contextMap[convId];
         if (ctx?.isEcommerce && ctx.orderId) {
-          const [orderRes, shipmentRes, afterSaleRes] = await Promise.all([
-            fetch(`/api/orders/${ctx.platform}/${ctx.orderId}`),
-            ctx.platform === "jd" ? fetch(`/api/shipments/${ctx.platform}/${ctx.orderId}`) : Promise.resolve({ json: async () => null }),
-            ctx.afterSaleId ? fetch(`/api/after-sales/${ctx.platform}/${ctx.afterSaleId}`) : Promise.resolve({ json: async () => null }),
-          ]);
+          const orderRes = await fetch(`/api/orders/${ctx.platform}/${ctx.orderId}`);
           const orderData = await orderRes.json();
-          const shipmentData = await shipmentRes.json();
-          const afterSaleData = await afterSaleRes.json();
           setOrder(orderData.order_id ? orderData : null);
-          setShipment(ctx.platform === "jd" && shipmentData.shipments ? shipmentData : null);
-          setAfterSale(afterSaleData.after_sale_id ? afterSaleData : null);
+
+          if (ctx.platform !== "wecom_kf") {
+            const shipmentRes = await fetch(`/api/shipments/${ctx.platform}/${ctx.orderId}`);
+            const shipmentData = await shipmentRes.json();
+            setShipment(shipmentData && shipmentData.shipments && shipmentData.shipments.length > 0 ? shipmentData : null);
+          } else {
+            setShipment(null);
+          }
+
+          if (ctx.afterSaleId) {
+            try {
+              const afterSaleRes = await fetch(`/api/after-sales/${ctx.platform}/${ctx.afterSaleId}`);
+              if (afterSaleRes.ok) {
+                const afterSaleData = await afterSaleRes.json();
+                setAfterSale(afterSaleData && afterSaleData.after_sale_id ? afterSaleData : null);
+              } else {
+                setAfterSale(null);
+              }
+            } catch {
+              setAfterSale(null);
+            }
+          } else {
+            setAfterSale(null);
+          }
         } else if (ctx && !ctx.isEcommerce) {
           setOrder(null);
           setShipment(null);
@@ -418,6 +438,31 @@ export default function ConversationDetailPage() {
     setMessages([...messages, newMsg]);
 
     try {
+      const response = await fetch(`/api/messages`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          conversation_id: convId,
+          content: text,
+          sender_type: "agent",
+          sender_id: "agent_001",
+        }),
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        if (data.user_reply) {
+          const userMsg: Message = {
+            id: `msg_${Date.now() + 1}`,
+            direction: "inbound",
+            content: data.user_reply,
+            sender: "customer",
+            create_time: new Date().toISOString(),
+          };
+          setMessages((prev) => [...prev, userMsg]);
+        }
+      }
+
       await fetch(`/api/audit-logs`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -432,7 +477,7 @@ export default function ConversationDetailPage() {
         }),
       });
     } catch (error) {
-      console.error("Failed to create audit log:", error);
+      console.error("Failed to send message:", error);
     }
   };
 

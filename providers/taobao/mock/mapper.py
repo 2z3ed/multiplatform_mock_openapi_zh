@@ -45,25 +45,6 @@ def map_order(data: dict, platform: str) -> OrderDTO:
     )
 
 
-def map_refund(data: dict, platform: str) -> AfterSaleDTO:
-    return AfterSaleDTO(
-        platform=platform,
-        after_sale_id=data.get("refundId", ""),
-        order_id=data.get("orderId", ""),
-        type=data.get("type", ""),
-        type_name=data.get("typeName", ""),
-        status=data.get("status", ""),
-        status_name=data.get("statusName", ""),
-        apply_time=data.get("applyTime"),
-        handle_time=data.get("handleTime"),
-        apply_amount=data.get("applyAmount", 0.0),
-        approve_amount=data.get("approveAmount", 0.0),
-        reason=data.get("reason"),
-        reason_detail=data.get("reasonDetail"),
-        raw_json=data.get("raw_json", {})
-    )
-
-
 def map_shipment(data: dict, platform: str) -> ShipmentDTO:
     shipment_items = []
     for ship in data.get("shipments", []):
@@ -88,5 +69,24 @@ def map_shipment(data: dict, platform: str) -> ShipmentDTO:
         platform=platform,
         order_id=data.get("orderId", ""),
         shipments=shipment_items,
+        raw_json=data.get("raw_json", {})
+    )
+
+
+def map_after_sale(data: dict, platform: str) -> AfterSaleDTO:
+    return AfterSaleDTO(
+        platform=platform,
+        after_sale_id=data.get("afterSaleId", ""),
+        order_id=data.get("orderId", ""),
+        type=data.get("type", ""),
+        type_name=data.get("typeName", ""),
+        status=data.get("status", ""),
+        status_name=data.get("statusName", ""),
+        apply_time=data.get("applyTime"),
+        handle_time=data.get("handleTime"),
+        apply_amount=data.get("applyAmount", 0.0),
+        approve_amount=data.get("approveAmount", 0.0),
+        reason=data.get("reason"),
+        reason_detail=data.get("reasonDetail"),
         raw_json=data.get("raw_json", {})
     )

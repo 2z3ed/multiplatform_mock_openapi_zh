@@ -17,11 +17,13 @@ app = FastAPI(
     openapi_url="/openapi.json"
 )
 
+import os
+
 BACKEND_SERVICES = {
-    "domain-service": "http://domain-service:8001",
-    "ai-orchestrator": "http://ai-orchestrator:8002",
-    "knowledge-service": "http://knowledge-service:8003",
-    "mock-platform-server": "http://mock-platform-server:8004",
+    "domain-service": os.getenv("DOMAIN_SERVICE_URL", "http://localhost:8005"),
+    "ai-orchestrator": os.getenv("AI_ORCHESTRATOR_URL", "http://localhost:9000"),
+    "knowledge-service": os.getenv("KNOWLEDGE_SERVICE_URL", "http://localhost:8003"),
+    "mock-platform-server": os.getenv("MOCK_PLATFORM_URL", "http://localhost:8004"),
 }
 
 
@@ -157,6 +159,26 @@ async def suggest_reply(request: Request):
         response = await client.post(
             f"{BACKEND_SERVICES['ai-orchestrator']}/api/ai/suggest-reply",
             json=body
+        )
+    return JSONResponse(content=response.json(), status_code=response.status_code)
+
+
+@app.post("/api/messages")
+async def send_message(request: Request):
+    body = await request.json()
+    async with httpx.AsyncClient(timeout=30.0) as client:
+        response = await client.post(
+            f"{BACKEND_SERVICES['domain-service']}/api/messages",
+            json=body
+        )
+    return JSONResponse(content=response.json(), status_code=response.status_code)
+
+
+@app.get("/api/messages/{conversation_id}")
+async def get_saved_messages(conversation_id: str):
+    async with httpx.AsyncClient() as client:
+        response = await client.get(
+            f"{BACKEND_SERVICES['domain-service']}/api/messages/{conversation_id}"
         )
     return JSONResponse(content=response.json(), status_code=response.status_code)
 
@@ -374,4 +396,45 @@ async def get_analytics_summaries(request: Request):
             f"{BACKEND_SERVICES['domain-service']}/api/analytics/summaries",
             params=request.query_params
         )
+    return JSONResponse(content=response.json(), status_code=response.status_code)
+
+
+@app.get("/api/integration/inventory")
+async def list_inventory_snapshots(request: Request):
+    async with httpx.AsyncClient() as client:
+        response = await client.get(
+            f"{BACKEND_SERVICES['domain-service']}/api/integration/inventory",
+            params=request.query_params
+        )
+    return JSONResponse(content=response.json(), status_code=response.status_code)
+
+
+@app.get("/api/integration/order-audits")
+async def list_order_audit_snapshots(request: Request):
+    async with httpx.AsyncClient() as client:
+        response = await client.get(
+            f"{BACKEND_SERVICES['domain-service']}/api/integration/order-audits",
+            params=request.query_params
+        )
+    return JSONResponse(content=response.json(), status_code=response.status_code)
+
+
+@app.get("/api/integration/order-exceptions")
+async def list_order_exception_snapshots(request: Request):
+    async with httpx.AsyncClient() as client:
+        response = await client.get(
+            f"{BACKEND_SERVICES['domain-service']}/api/integration/order-exceptions",
+            params=request.query_params
+        )
+    return JSONResponse(content=response.json(), status_code=response.status_code)
+
+
+@app.get("/api/integration/sync-status")
+async def get_sync_status():
+    async with httpx.AsyncClient() as client:
+        response = await client.get(
+            f"{BACKEND_SERVICES['domain-service']}/api/integration/sync-status"
+        )
+    if response.status_code == 404:
+        return JSONResponse(content={"message": "No sync status found"}, status_code=200)
     return JSONResponse(content=response.json(), status_code=response.status_code)

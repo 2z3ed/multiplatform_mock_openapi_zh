@@ -17,6 +17,7 @@ from app.api.risk_case import router as risk_case_router
 from app.api.blacklist_customer import router as blacklist_customer_router
 from app.api.integration import router as integration_router
 from app.api.management import router as management_router
+from app.api.messages import router as messages_router
 from app.scheduler import start_scheduler, stop_scheduler
 
 app = FastAPI(
@@ -56,6 +57,7 @@ app.include_router(risk_case_router)
 app.include_router(blacklist_customer_router)
 app.include_router(integration_router)
 app.include_router(management_router)
+app.include_router(messages_router)
 
 
 @app.get("/health")
