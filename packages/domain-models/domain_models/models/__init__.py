@@ -4,7 +4,9 @@ from domain_models.models.analytics_summary import AnalyticsSummary
 from domain_models.models.audit_log import AuditLog
 from domain_models.models.blacklist_customer import BlacklistCustomer
 from domain_models.models.conversation import Conversation
+from domain_models.models.conversation_order_link import ConversationOrderLink
 from domain_models.models.customer import Customer
+from domain_models.models.customer_identity_mapping import CustomerIdentityMapping
 from domain_models.models.customer_profile import CustomerProfile
 from domain_models.models.customer_tag import CustomerTag
 from domain_models.models.erp_inventory_snapshot import ERPInventorySnapshot
@@ -16,7 +18,9 @@ from domain_models.models.management_dashboard_snapshot import ManagementDashboa
 from domain_models.models.message import Message
 from domain_models.models.operation_campaign import OperationCampaign
 from domain_models.models.order_audit_snapshot import OrderAuditSnapshot
+from domain_models.models.order_core import OrderCore
 from domain_models.models.order_exception_snapshot import OrderExceptionSnapshot
+from domain_models.models.order_identity_mapping import OrderIdentityMapping
 from domain_models.models.order_snapshot import OrderSnapshot
 from domain_models.models.platform_account import PlatformAccount
 from domain_models.models.quality_alert import QualityAlert
@@ -33,11 +37,15 @@ from domain_models.models.voc_topic import VOCTopic
 __all__ = [
     "PlatformAccount",
     "Customer",
+    "CustomerIdentityMapping",
     "CustomerProfile",
     "CustomerTag",
     "Conversation",
+    "ConversationOrderLink",
     "Message",
     "OrderSnapshot",
+    "OrderCore",
+    "OrderIdentityMapping",
     "ShipmentSnapshot",
     "AfterSaleCase",
     "KBDocument",

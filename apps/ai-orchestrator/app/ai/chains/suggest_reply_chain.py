@@ -36,18 +36,59 @@ class SuggestReplyChain:
         context_info = ""
         if intent == "order_query" and context:
             status = context.get("status_name", context.get("status", "未知"))
-            order_id = context.get("order_id", "")
+            order_id = context.get("order_id", context.get("internal_order_id", ""))
             context_info = f"订单状态: {status}"
+            if context.get("internal_order_id"):
+                context_info += f"，内部订单ID: {context['internal_order_id']}"
         elif intent == "shipment_query" and context:
-            shipments = context.get("shipments", [])
-            if shipments:
-                s = shipments[0]
-                context_info = f"物流状态: {s.get('status_name', s.get('status', '未知'))}"
+            if context.get("resolved"):
+                status = context.get("shipment_status", "未知")
+                tracking = context.get("tracking_no", "")
+                carrier = context.get("carrier", "")
+                source = context.get("source", "unknown")
+                parts = [f"物流状态: {status}"]
+                if tracking:
+                    parts.append(f"运单号: {tracking}")
+                if carrier:
+                    parts.append(f"物流公司: {carrier}")
+                if context.get("internal_order_id"):
+                    parts.append(f"内部订单ID: {context['internal_order_id']}")
+                parts.append(f"数据来源: {source}")
+                context_info = "，".join(parts)
             else:
-                context_info = "暂无物流信息"
+                shipments = context.get("shipments", [])
+                if shipments:
+                    s = shipments[0]
+                    context_info = f"物流状态: {s.get('status_name', s.get('status', '未知'))}"
+                else:
+                    context_info = "当前暂无可确认的物流信息"
         elif intent == "after_sale_query" and context:
-            status = context.get("status_name", context.get("status", "未知"))
-            context_info = f"售后状态: {status}"
+            if context.get("resolved"):
+                status = context.get("after_sale_status", context.get("status_name", "未知"))
+                atype = context.get("after_sale_type", context.get("type_name", ""))
+                amount = context.get("apply_amount", "")
+                approve = context.get("approve_amount", "")
+                reason = context.get("reason", "")
+                source = context.get("source", "unknown")
+                parts = [f"售后状态: {status}"]
+                if atype:
+                    parts.append(f"类型: {atype}")
+                if amount:
+                    parts.append(f"申请金额: {amount}")
+                if approve:
+                    parts.append(f"审核金额: {approve}")
+                if reason:
+                    parts.append(f"原因: {reason}")
+                if context.get("internal_order_id"):
+                    parts.append(f"内部订单ID: {context['internal_order_id']}")
+                parts.append(f"数据来源: {source}")
+                context_info = "，".join(parts)
+            else:
+                status = context.get("status_name", context.get("status", "未知"))
+                if status != "未知":
+                    context_info = f"售后状态: {status}"
+                else:
+                    context_info = "当前暂无可确认的售后信息"
 
         if intent == "faq" and kb_results:
             used_tools.append("search_kb")

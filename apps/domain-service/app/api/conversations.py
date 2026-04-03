@@ -215,3 +215,44 @@ def handoff_conversation(
             )
             return {"status": "ok", "conversation_id": conversation_id, "handoff_to": target_agent}
     raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Conversation not found")
+
+
+@router.post("/{conversation_id}/orders/{order_id}/bind")
+def bind_order_to_conversation(
+    conversation_id: str,
+    order_id: int,
+    link_type: str = "bound",
+    db: Session = Depends(get_db),
+) -> dict:
+    from app.services.identity_service import bind_order_to_conversation as _bind
+
+    conv_pk = CONVERSATION_PK_MAP.get(conversation_id)
+    if conv_pk is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Conversation not found")
+
+    result = _bind(db, conv_pk, order_id, link_type)
+    return {
+        "status": "ok",
+        "conversation_id": conversation_id,
+        "order_id": order_id,
+        "link_type": result["link_type"],
+        "already_existed": result["already_existed"],
+    }
+
+
+@router.get("/{conversation_id}/orders")
+def list_conversation_orders(
+    conversation_id: str,
+    db: Session = Depends(get_db),
+) -> dict:
+    from app.services.identity_service import list_order_ids_for_conversation as _list_orders
+
+    conv_pk = CONVERSATION_PK_MAP.get(conversation_id)
+    if conv_pk is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Conversation not found")
+
+    orders = _list_orders(db, conv_pk)
+    return {
+        "conversation_id": conversation_id,
+        "orders": orders,
+    }

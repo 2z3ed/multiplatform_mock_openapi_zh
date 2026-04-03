@@ -15,20 +15,55 @@ def adapt_platform_sim_order(order_data: dict) -> dict:
     receiver = order_data.get("receiver", {})
     receiver_addr = receiver.get("address", "")
     # Split address into province/city/district/detail if possible
-    parts = receiver_addr.split("区") if "区" in receiver_addr else receiver_addr.split("市")
-    province = parts[0] if len(parts) > 1 else ""
-    city = parts[1] if len(parts) > 1 else ""
+    province = ""
+    city = ""
     district = ""
     detail = receiver_addr
 
+    if receiver_addr:
+        if "省" in receiver_addr:
+            province_end = receiver_addr.index("省") + 1
+            province = receiver_addr[:province_end]
+            rest = receiver_addr[province_end:]
+            if "市" in rest:
+                city_end = rest.index("市") + 1
+                city = rest[:city_end]
+                rest2 = rest[city_end:]
+                if "区" in rest2:
+                    district_end = rest2.index("区") + 1
+                    district = rest2[:district_end]
+                    detail = rest2[district_end:]
+                else:
+                    detail = rest2
+            else:
+                city = rest
+        elif "市" in receiver_addr:
+            city_end = receiver_addr.index("市") + 1
+            city = receiver_addr[:city_end]
+            rest = receiver_addr[city_end:]
+            if "区" in rest:
+                district_end = rest.index("区") + 1
+                district = rest[:district_end]
+                detail = rest[district_end:]
+            else:
+                detail = rest if rest else detail
+        elif "区" in receiver_addr:
+            district_end = receiver_addr.index("区") + 1
+            district = receiver_addr[:district_end]
+
     items = []
-    for item in order_data.get("items", []):
+    products = order_data.get("products", order_data.get("items", []))
+    for item in products:
+        product_id = item.get("product_id", item.get("sku_id", ""))
+        name = item.get("name", item.get("sku_name", ""))
+        quantity = item.get("num", item.get("quantity", 0))
+        price = float(item.get("price", 0))
         items.append({
-            "skuId": item.get("sku_id", ""),
-            "skuName": item.get("name", ""),
-            "quantity": item.get("quantity", 0),
-            "price": float(item.get("price", 0)),
-            "subTotal": float(item.get("price", 0)) * item.get("quantity", 1),
+            "skuId": product_id,
+            "skuName": name,
+            "quantity": quantity,
+            "price": price,
+            "subTotal": price * quantity,
         })
 
     # Map platform-sim status to JD status codes
@@ -64,16 +99,20 @@ def adapt_platform_sim_order(order_data: dict) -> dict:
     jd_status = status_code_map.get(raw_status, raw_status)
     jd_status_name = status_text_map.get(raw_status, order_data.get("status_text", ""))
 
+    total_amount = order_data.get("total_amount", order_data.get("amount", 0))
+    pay_amount = order_data.get("pay_amount", order_data.get("amount", 0))
+    freight = order_data.get("freight", order_data.get("freight_amount", 0))
+
     return {
         "orderId": order_data.get("order_id", ""),
         "orderStatus": jd_status,
         "orderStatusName": jd_status_name,
-        "createTime": order_data.get("created_at"),
-        "payTime": order_data.get("paid_at"),
-        "totalAmount": float(order_data.get("amount", 0)),
-        "freightAmount": 0.0,
-        "discountAmount": 0.0,
-        "paymentAmount": float(order_data.get("amount", 0)),
+        "createTime": order_data.get("create_time", order_data.get("created_at")),
+        "payTime": order_data.get("pay_time", order_data.get("paid_at")),
+        "totalAmount": float(total_amount) if total_amount else 0.0,
+        "freightAmount": float(freight) if freight else 0.0,
+        "discountAmount": float(order_data.get("discount_amount", 0)),
+        "paymentAmount": float(pay_amount) if pay_amount else 0.0,
         "buyerNick": receiver.get("name", ""),
         "buyerPhone": receiver.get("phone", ""),
         "receiverName": receiver.get("name", ""),

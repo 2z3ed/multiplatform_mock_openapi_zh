@@ -14,5 +14,7 @@ class Conversation(Base, TimestampMixin):
     status: Mapped[str] = mapped_column(String(30), nullable=False, default="open")
     assigned_agent_id: Mapped[str | None] = mapped_column(String(100), nullable=True)
     subject: Mapped[str | None] = mapped_column(Text, nullable=True)
+    platform_conversation_id: Mapped[str | None] = mapped_column(String(100), nullable=True)
+    source_system: Mapped[str | None] = mapped_column(String(30), nullable=True, default="platform")
     raw_json: Mapped[dict | None] = mapped_column(JSON, nullable=True)
     extra_json: Mapped[dict | None] = mapped_column(JSON, nullable=True)

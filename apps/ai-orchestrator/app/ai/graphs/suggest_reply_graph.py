@@ -78,7 +78,8 @@ def route_to_tool_or_kb(state: GraphState) -> GraphState:
         }
     elif intent == "after_sale_query":
         after_sale_id = state.get("order_id") or "AS20240320001"
-        context = get_after_sale(after_sale_id, state.get("platform", "jd"))
+        order_id = state.get("order_id")
+        context = get_after_sale(after_sale_id, state.get("platform", "jd"), order_id=order_id)
         return {
             **state,
             "route": "tool",
