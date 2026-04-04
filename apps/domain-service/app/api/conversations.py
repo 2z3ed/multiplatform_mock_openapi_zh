@@ -1,108 +1,36 @@
 from fastapi import APIRouter, HTTPException, status, Depends
 from sqlalchemy.orm import Session
 from app.services.audit_service import get_audit_service, AuditService
+from app.repositories.conversation_repository import list_all as _list_conversations, get_by_id as _get_conversation
 from shared_db import get_db
 from domain_models.models.message import Message
 
 router = APIRouter(prefix="/api/conversations", tags=["conversations"])
 
-MOCK_CONVERSATIONS = [
-    {
-        "id": "conv1",
-        "conversation_pk": 1,
-        "platform": "jd",
-        "customer_id": "jd_user_001",
-        "customer_pk": 1,
-        "customer_nick": "李明",
-        "status": "active",
-        "assigned_agent": None,
-        "unread_count": 2,
-        "last_message_time": "2026-03-30T09:00:00Z",
-        "created_at": "2026-03-28T20:15:00Z"
-    },
-    {
-        "id": "conv2",
-        "conversation_pk": 2,
-        "platform": "jd",
-        "customer_id": "jd_user_002",
-        "customer_pk": 2,
-        "customer_nick": "王芳",
-        "status": "active",
-        "assigned_agent": "agent_001",
-        "unread_count": 1,
-        "last_message_time": "2026-03-30T10:30:00Z",
-        "created_at": "2026-03-29T16:20:00Z"
-    },
-    {
-        "id": "conv3",
-        "conversation_pk": 3,
-        "platform": "taobao",
-        "customer_id": "tb_user_001",
-        "customer_pk": 3,
-        "customer_nick": "张婷",
-        "status": "active",
-        "assigned_agent": "agent_001",
-        "unread_count": 3,
-        "last_message_time": "2026-03-30T08:00:00Z",
-        "created_at": "2026-03-28T11:30:00Z"
-    },
-    {
-        "id": "conv4",
-        "conversation_pk": 4,
-        "platform": "taobao",
-        "customer_id": "tb_user_002",
-        "customer_pk": 4,
-        "customer_nick": "陈浩",
-        "status": "waiting",
-        "assigned_agent": None,
-        "unread_count": 1,
-        "last_message_time": "2026-03-30T11:00:00Z",
-        "created_at": "2026-03-30T10:00:00Z"
-    },
-    {
-        "id": "conv5",
-        "conversation_pk": 5,
-        "platform": "douyin_shop",
-        "customer_id": "douyin_user_001",
-        "customer_pk": 5,
-        "customer_nick": "刘洋",
-        "status": "active",
-        "assigned_agent": None,
-        "unread_count": 2,
-        "last_message_time": "2026-03-30T09:30:00Z",
-        "created_at": "2026-03-30T09:15:00Z"
-    },
-    {
-        "id": "conv6",
-        "conversation_pk": 6,
-        "platform": "douyin_shop",
-        "customer_id": "douyin_user_002",
-        "customer_pk": 6,
-        "customer_nick": "赵雪",
-        "status": "active",
-        "assigned_agent": "agent_002",
-        "unread_count": 1,
-        "last_message_time": "2026-03-30T07:00:00Z",
-        "created_at": "2026-03-28T15:20:00Z"
-    },
-    {
-        "id": "conv7",
-        "conversation_pk": 7,
-        "platform": "wecom_kf",
-        "customer_id": "wecom_user_001",
-        "customer_pk": 7,
-        "customer_nick": "微信用户_孙伟",
-        "status": "waiting",
-        "assigned_agent": None,
-        "unread_count": 1,
-        "last_message_time": "2026-03-30T10:00:00Z",
-        "created_at": "2026-03-30T09:45:00Z"
-    }
-]
 
-CONVERSATION_PK_MAP = {
-    "conv1": 1, "conv2": 2, "conv3": 3, "conv4": 4, "conv5": 5, "conv6": 6, "conv7": 7,
-}
+def _conv_to_dict(conv) -> dict:
+    """Convert DB Conversation to API dict."""
+    customer_id = None
+    customer_nick = None
+    if hasattr(conv, 'customer') and conv.customer:
+        customer_id = conv.customer.platform_customer_id
+        customer_nick = conv.customer.display_name
+
+    return {
+        "id": str(conv.id),
+        "conversation_pk": conv.id,
+        "platform": conv.platform,
+        "customer_id": customer_id,
+        "customer_pk": conv.customer_id,
+        "customer_nick": customer_nick,
+        "status": conv.status,
+        "assigned_agent": conv.assigned_agent_id,
+        "subject": conv.subject,
+        "unread_count": 0,
+        "last_message_time": conv.updated_at.isoformat() if conv.updated_at else None,
+        "created_at": conv.created_at.isoformat() if conv.created_at else None,
+        "extra_json": conv.extra_json,
+    }
 
 
 @router.get("")
@@ -111,30 +39,40 @@ def list_conversations(
     status: str | None = None,
     assigned_agent: str | None = None,
     skip: int = 0,
-    limit: int = 20
+    limit: int = 20,
+    db: Session = Depends(get_db)
 ) -> dict:
-    result = MOCK_CONVERSATIONS
-    if platform:
-        result = [c for c in result if c["platform"] == platform]
-    if status:
-        result = [c for c in result if c["status"] == status]
+    conversations = _list_conversations(db, platform=platform, status=status, skip=skip, limit=limit)
+    total = _list_conversations.__code__.co_consts  # placeholder, use count
+    from app.repositories.conversation_repository import count_all
+    total = count_all(db, platform=platform, status=status)
+
+    items = [_conv_to_dict(c) for c in conversations]
+
     if assigned_agent is not None:
         if assigned_agent == "":
-            result = [c for c in result if c["assigned_agent"] is None]
+            items = [i for i in items if not i.get("assigned_agent")]
         else:
-            result = [c for c in result if c["assigned_agent"] == assigned_agent]
+            items = [i for i in items if i.get("assigned_agent") == assigned_agent]
+
     return {
-        "total": len(result),
-        "items": result[skip:skip + limit]
+        "total": total,
+        "items": items
     }
 
 
 @router.get("/{conversation_id}")
-def get_conversation(conversation_id: str) -> dict:
-    for conv in MOCK_CONVERSATIONS:
-        if conv["id"] == conversation_id:
-            return conv
-    raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Conversation not found")
+def get_conversation(conversation_id: str, db: Session = Depends(get_db)) -> dict:
+    try:
+        conv_id = int(conversation_id)
+    except (ValueError, TypeError):
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Conversation not found")
+
+    conv = _get_conversation(db, conv_id)
+    if conv is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Conversation not found")
+
+    return _conv_to_dict(conv)
 
 
 @router.get("/{conversation_id}/messages")
@@ -144,32 +82,29 @@ def get_messages(
     limit: int = 50,
     db: Session = Depends(get_db)
 ) -> dict:
-    conv = None
-    for c in MOCK_CONVERSATIONS:
-        if c["id"] == conversation_id:
-            conv = c
-            break
+    try:
+        conv_pk = int(conversation_id)
+    except (ValueError, TypeError):
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Conversation not found")
 
+    conv = _get_conversation(db, conv_pk)
     if conv is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Conversation not found")
 
-    conv_pk = CONVERSATION_PK_MAP.get(conversation_id)
     messages = []
-    
-    if conv_pk:
-        db_messages = db.query(Message).filter(
-            Message.conversation_id == conv_pk
-        ).order_by(Message.sent_at.asc()).all()
-        
-        for msg in db_messages:
-            messages.append({
-                "id": f"db_{msg.id}",
-                "conversation_id": conversation_id,
-                "direction": "outbound" if msg.sender_type == "agent" else "inbound",
-                "content": msg.content,
-                "sender": msg.sender_type,
-                "create_time": msg.sent_at.isoformat() if msg.sent_at else None,
-            })
+    db_messages = db.query(Message).filter(
+        Message.conversation_id == conv_pk
+    ).order_by(Message.sent_at.asc()).all()
+
+    for msg in db_messages:
+        messages.append({
+            "id": f"db_{msg.id}",
+            "conversation_id": conversation_id,
+            "direction": "outbound" if msg.sender_type == "agent" else "inbound",
+            "content": msg.content,
+            "sender": msg.sender_type,
+            "create_time": msg.sent_at.isoformat() if msg.sent_at else None,
+        })
 
     return {
         "total": len(messages),
@@ -184,17 +119,25 @@ def assign_conversation(
     db: Session = Depends(get_db),
     audit_svc: AuditService = Depends(lambda db=Depends(get_db): get_audit_service(db))
 ) -> dict:
-    for conv in MOCK_CONVERSATIONS:
-        if conv["id"] == conversation_id:
-            old_agent = conv["assigned_agent"]
-            conv["assigned_agent"] = agent_id
-            audit_svc.conversation_assigned(
-                conversation_id=conversation_id,
-                agent_id=agent_id,
-                assigned_by="api"
-            )
-            return {"status": "ok", "conversation_id": conversation_id, "assigned_agent": agent_id}
-    raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Conversation not found")
+    try:
+        conv_pk = int(conversation_id)
+    except (ValueError, TypeError):
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Conversation not found")
+
+    conv = _get_conversation(db, conv_pk)
+    if conv is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Conversation not found")
+
+    old_agent = conv.assigned_agent_id
+    conv.assigned_agent_id = agent_id
+    db.commit()
+
+    audit_svc.conversation_assigned(
+        conversation_id=conversation_id,
+        agent_id=agent_id,
+        assigned_by="api"
+    )
+    return {"status": "ok", "conversation_id": conversation_id, "assigned_agent": agent_id}
 
 
 @router.post("/{conversation_id}/handoff")
@@ -204,17 +147,25 @@ def handoff_conversation(
     db: Session = Depends(get_db),
     audit_svc: AuditService = Depends(lambda db=Depends(get_db): get_audit_service(db))
 ) -> dict:
-    for conv in MOCK_CONVERSATIONS:
-        if conv["id"] == conversation_id:
-            old_agent = conv["assigned_agent"]
-            conv["assigned_agent"] = target_agent
-            audit_svc.conversation_handed_off(
-                conversation_id=conversation_id,
-                from_agent=old_agent or "none",
-                to_agent=target_agent
-            )
-            return {"status": "ok", "conversation_id": conversation_id, "handoff_to": target_agent}
-    raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Conversation not found")
+    try:
+        conv_pk = int(conversation_id)
+    except (ValueError, TypeError):
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Conversation not found")
+
+    conv = _get_conversation(db, conv_pk)
+    if conv is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Conversation not found")
+
+    old_agent = conv.assigned_agent_id
+    conv.assigned_agent_id = target_agent
+    db.commit()
+
+    audit_svc.conversation_handed_off(
+        conversation_id=conversation_id,
+        from_agent=old_agent or "none",
+        to_agent=target_agent
+    )
+    return {"status": "ok", "conversation_id": conversation_id, "handoff_to": target_agent}
 
 
 @router.post("/{conversation_id}/orders/{order_id}/bind")
@@ -226,8 +177,9 @@ def bind_order_to_conversation(
 ) -> dict:
     from app.services.identity_service import bind_order_to_conversation as _bind
 
-    conv_pk = CONVERSATION_PK_MAP.get(conversation_id)
-    if conv_pk is None:
+    try:
+        conv_pk = int(conversation_id)
+    except (ValueError, TypeError):
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Conversation not found")
 
     result = _bind(db, conv_pk, order_id, link_type)
@@ -247,8 +199,9 @@ def list_conversation_orders(
 ) -> dict:
     from app.services.identity_service import list_order_ids_for_conversation as _list_orders
 
-    conv_pk = CONVERSATION_PK_MAP.get(conversation_id)
-    if conv_pk is None:
+    try:
+        conv_pk = int(conversation_id)
+    except (ValueError, TypeError):
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Conversation not found")
 
     orders = _list_orders(db, conv_pk)
@@ -256,3 +209,18 @@ def list_conversation_orders(
         "conversation_id": conversation_id,
         "orders": orders,
     }
+
+
+@router.get("/{conversation_id}/context")
+def get_conversation_context(
+    conversation_id: str,
+    db: Session = Depends(get_db),
+) -> dict:
+    from app.services.context_aggregation_service import aggregate_conversation_context
+
+    try:
+        conv_pk = int(conversation_id)
+    except (ValueError, TypeError):
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Conversation not found")
+
+    return aggregate_conversation_context(db, conv_pk)

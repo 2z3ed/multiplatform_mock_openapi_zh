@@ -12,10 +12,6 @@ from domain_models.models.conversation import Conversation
 
 router = APIRouter(prefix="/api/messages", tags=["messages"])
 
-CONVERSATION_PK_MAP = {
-    "conv1": 1, "conv2": 2, "conv3": 3, "conv4": 4, "conv5": 5, "conv6": 6, "conv7": 7,
-}
-
 PLATFORM_SIM_URL = os.getenv("PLATFORM_SIM_URL", "http://localhost:9000")
 
 
@@ -23,6 +19,12 @@ class MessageSendRequest(BaseModel):
     conversation_id: str
     content: str
     sender_type: str = "agent"
+    sender_id: Optional[str] = None
+
+
+class InboundMessageRequest(BaseModel):
+    conversation_id: str
+    content: str
     sender_id: Optional[str] = None
 
 
@@ -40,10 +42,21 @@ class RunNotFoundError(Exception):
     pass
 
 
+def _resolve_conv(db: Session, conversation_id: str):
+    """Resolve conversation_id string to (conv_pk, platform)."""
+    try:
+        conv_pk = int(conversation_id)
+    except (ValueError, TypeError):
+        return None, None
+    conv = db.query(Conversation).filter(Conversation.id == conv_pk).first()
+    if conv is None:
+        return None, None
+    return conv_pk, conv.platform
+
+
 @router.post("", response_model=MessageResponse)
 async def send_message(request: MessageSendRequest, db: Session = Depends(get_db)):
-    conversation_id = request.conversation_id
-    conv_pk = CONVERSATION_PK_MAP.get(conversation_id)
+    conv_pk, platform = _resolve_conv(db, request.conversation_id)
     if conv_pk is None:
         raise HTTPException(status_code=404, detail="Conversation not found")
 
@@ -62,12 +75,10 @@ async def send_message(request: MessageSendRequest, db: Session = Depends(get_db
 
     user_reply = None
     error_msg = None
-    
+
     if request.sender_type == "agent":
-        platform = _get_platform_by_conversation(conversation_id)
-        
         try:
-            user_reply = await _get_user_reply_with_retry(conversation_id, platform, request.content, db)
+            user_reply = await _get_user_reply_with_retry(request.conversation_id, platform or "jd", request.content, db)
             if user_reply:
                 user_msg = Message(
                     conversation_id=conv_pk,
@@ -91,7 +102,7 @@ async def send_message(request: MessageSendRequest, db: Session = Depends(get_db
 
     return MessageResponse(
         id=agent_msg.id,
-        conversation_id=conversation_id,
+        conversation_id=request.conversation_id,
         sender_type=request.sender_type,
         content=request.content,
         sent_at=sent_at,
@@ -102,15 +113,14 @@ async def send_message(request: MessageSendRequest, db: Session = Depends(get_db
 
 @router.get("/{conversation_id}")
 async def get_messages(conversation_id: str, db: Session = Depends(get_db)):
-    if conversation_id not in CONVERSATION_PK_MAP:
+    conv_pk, _ = _resolve_conv(db, conversation_id)
+    if conv_pk is None:
         raise HTTPException(status_code=404, detail="Conversation not found")
 
-    conv_pk = CONVERSATION_PK_MAP[conversation_id]
-    
     messages = db.query(Message).filter(
         Message.conversation_id == conv_pk
     ).order_by(Message.sent_at.asc()).all()
-    
+
     return {
         "conversation_id": conversation_id,
         "messages": [
@@ -127,29 +137,60 @@ async def get_messages(conversation_id: str, db: Session = Depends(get_db)):
     }
 
 
+@router.post("/inbound", response_model=MessageResponse)
+def send_inbound_message(request: InboundMessageRequest, db: Session = Depends(get_db)):
+    """Minimal inbound (customer) message endpoint. Does not depend on PlatformSim."""
+    conv_pk, _ = _resolve_conv(db, request.conversation_id)
+    if conv_pk is None:
+        raise HTTPException(status_code=404, detail="Conversation not found")
+
+    sent_at = datetime.utcnow()
+    msg = Message(
+        conversation_id=conv_pk,
+        sender_type="customer",
+        sender_id=request.sender_id,
+        content=request.content,
+        sent_at=sent_at,
+    )
+    db.add(msg)
+    db.commit()
+    db.refresh(msg)
+
+    return MessageResponse(
+        id=msg.id,
+        conversation_id=request.conversation_id,
+        sender_type="customer",
+        content=request.content,
+        sent_at=sent_at,
+    )
+
+
 async def _get_user_reply_with_retry(
-    conversation_id: str, 
-    platform: str, 
-    agent_message: str, 
+    conversation_id: str,
+    platform: str,
+    agent_message: str,
     db: Session
 ) -> Optional[str]:
-    conv_pk = CONVERSATION_PK_MAP.get(conversation_id)
+    conv_pk, _ = _resolve_conv(db, conversation_id)
     run_id = None
-    
+
     if conv_pk:
         conv = db.query(Conversation).filter(Conversation.id == conv_pk).first()
         if conv and conv.extra_json:
             run_id = conv.extra_json.get('platform_sim_run_id')
-    
+
     if run_id:
         try:
             user_reply = await _call_agent_message(run_id, conversation_id, agent_message)
             return user_reply
         except RunNotFoundError:
-            pass
-    
-    run_id = await _create_run(conversation_id, platform)
-    
+            run_id = None
+
+    try:
+        run_id = await _create_run(conversation_id, platform)
+    except Exception:
+        return None
+
     if conv_pk:
         conv = db.query(Conversation).filter(Conversation.id == conv_pk).first()
         if conv:
@@ -157,9 +198,14 @@ async def _get_user_reply_with_retry(
                 conv.extra_json = {}
             conv.extra_json['platform_sim_run_id'] = run_id
             db.commit()
-    
-    user_reply = await _call_agent_message(run_id, conversation_id, agent_message)
-    return user_reply
+
+    try:
+        user_reply = await _call_agent_message(run_id, conversation_id, agent_message)
+        return user_reply
+    except RunNotFoundError:
+        return None
+    except Exception:
+        return None
 
 
 async def _create_run(conversation_id: str, platform: str) -> str:
@@ -191,23 +237,13 @@ async def _call_agent_message(run_id: str, conversation_id: str, agent_message: 
                 "conversation_id": conversation_id,
             }
         )
-        
+
         if resp.status_code == 200:
             data = resp.json()
             return data.get("user_message")
-        
+
         if resp.status_code == 404:
             raise RunNotFoundError(f"Run {run_id} not found")
-        
+
         resp.raise_for_status()
         raise Exception(f"Unexpected status code: {resp.status_code}")
-
-
-def _get_platform_by_conversation(conversation_id: str) -> str:
-    platform_map = {
-        "conv1": "jd", "conv2": "jd",
-        "conv3": "taobao", "conv4": "taobao",
-        "conv5": "douyin_shop", "conv6": "douyin_shop",
-        "conv7": "wecom_kf",
-    }
-    return platform_map.get(conversation_id, "jd")
