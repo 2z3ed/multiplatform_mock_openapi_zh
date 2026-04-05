@@ -8,7 +8,7 @@ New path: /api/shipments/resolve?platform=...&external_order_id=...
 import httpx
 
 
-DOMAIN_SERVICE_URL = "http://domain-service:8001"
+DOMAIN_SERVICE_URL = "http://localhost:8005"
 
 
 async def get_shipment_tool(order_id: str, platform: str = "jd", source_system: str = "platform") -> dict:

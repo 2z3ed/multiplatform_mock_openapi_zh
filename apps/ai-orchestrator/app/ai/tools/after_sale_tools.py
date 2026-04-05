@@ -11,7 +11,7 @@ When only after_sale_id is available, falls back to old path for compatibility.
 import httpx
 
 
-DOMAIN_SERVICE_URL = "http://domain-service:8001"
+DOMAIN_SERVICE_URL = "http://localhost:8005"
 
 
 async def get_after_sale_tool(
