@@ -152,6 +152,15 @@ async def get_after_sale(platform: str, after_sale_id: str):
     return JSONResponse(content=response.json(), status_code=response.status_code)
 
 
+@app.get("/api/inventory/{platform}/{order_id}")
+async def get_inventory(platform: str, order_id: str):
+    async with httpx.AsyncClient() as client:
+        response = await client.get(
+            f"{BACKEND_SERVICES['domain-service']}/api/inventory/{platform}/{order_id}"
+        )
+    return JSONResponse(content=response.json(), status_code=response.status_code)
+
+
 @app.post("/api/ai/suggest-reply")
 async def suggest_reply(request: Request):
     body = await request.json()
@@ -437,4 +446,37 @@ async def get_sync_status():
         )
     if response.status_code == 404:
         return JSONResponse(content={"message": "No sync status found"}, status_code=200)
+    return JSONResponse(content=response.json(), status_code=response.status_code)
+
+
+@app.get("/api/conversations/{conversation_id}/context")
+async def get_conversation_context(conversation_id: str):
+    async with httpx.AsyncClient() as client:
+        response = await client.get(
+            f"{BACKEND_SERVICES['domain-service']}/api/conversations/{conversation_id}/context"
+        )
+    return JSONResponse(content=response.json(), status_code=response.status_code)
+
+
+@app.get("/api/quality/results")
+async def get_quality_results(request: Request):
+    async with httpx.AsyncClient() as client:
+        response = await client.get(
+            f"{BACKEND_SERVICES['domain-service']}/api/quality/results",
+            params=request.query_params
+        )
+    if response.status_code == 404:
+        return JSONResponse(content={"message": "No quality results found"}, status_code=200)
+    return JSONResponse(content=response.json(), status_code=response.status_code)
+
+
+@app.post("/api/quality/auto-evaluate")
+async def post_quality_auto_evaluate(request: Request):
+    body = await request.body()
+    async with httpx.AsyncClient() as client:
+        response = await client.post(
+            f"{BACKEND_SERVICES['domain-service']}/api/quality/auto-evaluate",
+            content=body,
+            headers={"Content-Type": "application/json"}
+        )
     return JSONResponse(content=response.json(), status_code=response.status_code)
