@@ -1,6 +1,7 @@
 from provider_sdk.dto.order_dto import OrderDTO, OrderItemDTO, AddressDTO
 from provider_sdk.dto.shipment_dto import ShipmentDTO, ShipmentItemDTO, ShipmentTraceDTO
 from provider_sdk.dto.after_sale_dto import AfterSaleDTO
+from provider_sdk.dto.inventory_dto import InventoryDTO, InventoryItemDTO
 
 
 def map_order(data: dict, platform: str) -> OrderDTO:
@@ -88,5 +89,24 @@ def map_after_sale(data: dict, platform: str) -> AfterSaleDTO:
         approve_amount=data.get("approveAmount", 0.0),
         reason=data.get("reason"),
         reason_detail=data.get("reasonDetail"),
+        raw_json=data.get("raw_json", {})
+    )
+
+
+def map_inventory(data: dict, platform: str) -> InventoryDTO:
+    items = []
+    for item in data.get("items", []):
+        items.append(InventoryItemDTO(
+            sku_id=item.get("skuId", ""),
+            product_id=item.get("skuId", ""),
+            product_name=item.get("productName", ""),
+            stock_state=item.get("status", ""),
+            quantity=item.get("quantity", 0),
+        ))
+
+    return InventoryDTO(
+        platform=platform,
+        order_id=data.get("orderId", ""),
+        items=items,
         raw_json=data.get("raw_json", {})
     )

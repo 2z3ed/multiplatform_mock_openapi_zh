@@ -60,3 +60,15 @@ class FollowUpTaskListResponse(BaseModel):
     total: int
     page: int
     size: int
+
+
+class AutoEvaluateFollowupRequest(BaseModel):
+    conversation_id: str
+    customer_id: int
+    order_timeout_hours: Optional[int] = 24
+    after_sale_timeout_hours: Optional[int] = 48
+
+
+class AutoEvaluateFollowupResponse(BaseModel):
+    created_tasks: list[FollowUpTaskResponse]
+    skipped: int

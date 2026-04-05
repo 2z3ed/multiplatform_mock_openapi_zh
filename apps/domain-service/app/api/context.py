@@ -23,6 +23,21 @@ def _get_provider(platform: str):
         if "douyin_shop" not in PROVIDER_MAP:
             PROVIDER_MAP["douyin_shop"] = DouyinShopMockProvider()
         return PROVIDER_MAP["douyin_shop"]
+    elif platform == "wecom_kf":
+        from providers.wecom_kf.mock.provider import WecomKfMockProvider
+        if "wecom_kf" not in PROVIDER_MAP:
+            PROVIDER_MAP["wecom_kf"] = WecomKfMockProvider()
+        return PROVIDER_MAP["wecom_kf"]
+    elif platform == "kuaishou":
+        from providers.kuaishou.mock.provider import KuaishouMockProvider
+        if "kuaishou" not in PROVIDER_MAP:
+            PROVIDER_MAP["kuaishou"] = KuaishouMockProvider()
+        return PROVIDER_MAP["kuaishou"]
+    elif platform == "xhs":
+        from providers.xhs.mock.provider import XhsMockProvider
+        if "xhs" not in PROVIDER_MAP:
+            PROVIDER_MAP["xhs"] = XhsMockProvider()
+        return PROVIDER_MAP["xhs"]
     raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=f"Unknown platform: {platform}")
 
 
@@ -115,6 +130,27 @@ def get_after_sale(platform: str, after_sale_id: str) -> dict:
     }
 
 
+@router.get("/inventory/{platform}/{order_id}")
+def get_inventory(platform: str, order_id: str) -> dict:
+    provider = _get_provider(platform)
+    inventory_dto = provider.get_inventory(order_id)
+    return {
+        "platform": inventory_dto.platform,
+        "order_id": inventory_dto.order_id,
+        "items": [
+            {
+                "sku_id": item.sku_id,
+                "product_id": item.product_id,
+                "product_name": item.product_name,
+                "stock_state": item.stock_state,
+                "quantity": item.quantity,
+                "warehouse_name": item.warehouse_name,
+            }
+            for item in inventory_dto.items
+        ]
+    }
+
+
 @router.get("/orders/resolve")
 def resolve_order(
     platform: str = Query(...),
@@ -191,6 +227,12 @@ def resolve_shipment(
     from domain_models.models.shipment_snapshot import ShipmentSnapshot
 
     internal_order_id = _resolve_order_id(db, source_system, platform, external_order_id, account_id)
+    if internal_order_id is None:
+        internal_order_id = _resolve_order_id(db, platform, platform, external_order_id, account_id)
+    if internal_order_id is None:
+        internal_order_id = _resolve_order_id(db, "odoo", platform, external_order_id, account_id)
+    if internal_order_id is None:
+        internal_order_id = _resolve_order_id(db, "odoo", "odoo", external_order_id, "demo")
     if internal_order_id is None:
         return {
             "internal_order_id": None,
@@ -287,6 +329,12 @@ def resolve_after_sale(
     from domain_models.models.after_sale_case import AfterSaleCase
 
     internal_order_id = _resolve_order_id(db, source_system, platform, external_order_id, account_id)
+    if internal_order_id is None:
+        internal_order_id = _resolve_order_id(db, platform, platform, external_order_id, account_id)
+    if internal_order_id is None:
+        internal_order_id = _resolve_order_id(db, "odoo", platform, external_order_id, account_id)
+    if internal_order_id is None:
+        internal_order_id = _resolve_order_id(db, "odoo", "odoo", external_order_id, "demo")
     if internal_order_id is None:
         return {
             "internal_order_id": None,

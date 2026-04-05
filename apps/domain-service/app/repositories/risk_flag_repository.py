@@ -5,7 +5,10 @@ from sqlalchemy.orm import Session
 from domain_models.models.risk_flag import RiskFlag
 
 
-ALLOWED_RISK_TYPES = {"negative_sentiment", "complaint_tendency"}
+ALLOWED_RISK_TYPES = {
+    "negative_sentiment", "complaint_tendency",
+    "frequent_after_sale", "high_amount_order", "fulfillment_conflict",
+}
 ALLOWED_RISK_LEVELS = {"low", "medium", "high"}
 ALLOWED_STATUSES = {"active", "resolved", "dismissed"}
 

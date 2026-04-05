@@ -180,3 +180,23 @@ def adapt_platform_sim_refund(refund_data: dict, order_id: str) -> dict:
         "reasonDetail": refund_data.get("reason", ""),
         "raw_json": refund_data,
     }
+
+
+def adapt_platform_sim_inventory(inventory_data: list, order_id: str) -> dict:
+    if not inventory_data:
+        return {"orderId": order_id, "items": []}
+
+    items = []
+    for item in inventory_data:
+        items.append({
+            "productId": item.get("product_id", ""),
+            "productName": item.get("product_name", ""),
+            "stockNum": item.get("stock_num", 0),
+            "status": item.get("status", 1),
+        })
+
+    return {
+        "orderId": order_id,
+        "items": items,
+        "raw_json": inventory_data,
+    }

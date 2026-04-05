@@ -12,8 +12,11 @@ class FollowUpTaskService:
 
     VALID_STATUSES = {"pending", "completed", "closed"}
     VALID_PRIORITIES = {"low", "medium", "high"}
-    VALID_TASK_TYPES = {"consultation_no_order", "unpaid", "shipment_exception", "after_sale_care"}
-    VALID_TRIGGER_SOURCES = {"manual", "ai_suggested"}
+    VALID_TASK_TYPES = {
+        "consultation_no_order", "unpaid", "shipment_exception", "after_sale_care",
+        "shipment_pending_timeout", "after_sale_processing_timeout",
+    }
+    VALID_TRIGGER_SOURCES = {"manual", "ai_suggested", "auto_rule"}
 
     ALLOWED_UPDATE_FIELDS = {
         "title", "description", "suggested_copy",

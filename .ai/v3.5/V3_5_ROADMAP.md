@@ -127,9 +127,15 @@ V3.5 = Real Odoo Integration Phase
 - Integration Center MVP（mock/snapshot）
 - Management / Training Center
 
-### 正在进入（V3.5）
+### 已完成并封板（V3.5）
 
-- Odoo 真实只读接入
+- Odoo 真实只读接入（Phase A）
+- Provider 选择机制 + 最小可观测性（Phase B.1）
+- 受控定时刷新（Phase B.2.1）
+- Snapshot 保留策略 + 手动清理（Phase B.2.2）
+- order_exception 真实来源升级（Phase B.3，limited_support）
+
+详见：[V3_5_CLOSURE_SUMMARY.md](./V3_5_CLOSURE_SUMMARY.md)
 
 ### 暂不进入
 
@@ -137,4 +143,12 @@ V3.5 = Real Odoo Integration Phase
 - 复杂 BI
 - 复杂自动化
 - Deep Agents 主链路化
+
+### V3.5 之外的额外联调问题（独立于 V3.5 主线）
+
+- 消息持久化（agent/customer 消息写入 DB，已通）
+- 真实 PlatformSim 回复（端口 9000 未启动，自动回复链路不通）
+- conv1 / PlatformSim 实时链路验收
+
+这些是独立联调问题，不是 V3.5 主线未完成项。
 

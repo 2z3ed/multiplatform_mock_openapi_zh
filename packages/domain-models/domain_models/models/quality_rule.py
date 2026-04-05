@@ -4,7 +4,10 @@ from sqlalchemy.orm import Mapped, mapped_column
 from shared_db.base import Base
 from shared_db.mixins import TimestampMixin
 
-ALLOWED_RULE_TYPES = {"slow_reply", "missed_response", "forbidden_word"}
+ALLOWED_RULE_TYPES = {
+    "slow_reply", "missed_response", "forbidden_word",
+    "insufficient_explanation", "incomplete_after_sale_reply", "inventory_reply_conflict",
+}
 ALLOWED_SEVERITIES = {"low", "medium", "high"}
 
 

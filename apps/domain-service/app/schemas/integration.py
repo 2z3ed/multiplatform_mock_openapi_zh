@@ -88,6 +88,26 @@ class ExplainStatusResponse(BaseModel):
     suggestion: str
 
 
+class ConversationExplainRequest(BaseModel):
+    conversation_id: str
+
+
+class ExplainItem(BaseModel):
+    type: str
+    status_label: str
+    explanation: str
+    source_summary: str
+    suggestion: str
+
+
+class ConversationExplainResponse(BaseModel):
+    order: ExplainItem
+    shipment: ExplainItem
+    after_sales: list[ExplainItem]
+    inventory: ExplainItem
+    formatted: str
+
+
 class SyncStatusResponse(BaseModel):
     id: int
     trigger_type: str

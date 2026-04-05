@@ -23,6 +23,9 @@ class SuggestReplyResponse(BaseModel):
     used_tools: list[str]
     risk_level: str
     needs_human_review: bool
+    source_summary: str | None = None
+    degraded: bool = False
+    fallback_reason: str | None = None
 
 
 class UserReplyRequest(BaseModel):

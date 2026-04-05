@@ -1,4 +1,6 @@
 from fastapi import FastAPI
+from fastapi.responses import JSONResponse
+from provider_sdk.exceptions import ResourceNotFoundError, ServiceUnavailableError
 
 from app.api.conversations import router as conversations_router
 from app.api.context import router as context_router
@@ -28,6 +30,22 @@ app = FastAPI(
     redoc_url="/redoc",
     openapi_url="/openapi.json"
 )
+
+
+@app.exception_handler(ResourceNotFoundError)
+async def handle_resource_not_found(request, exc: ResourceNotFoundError):
+    return JSONResponse(
+        status_code=404,
+        content={"error": "not_found", "detail": str(exc)}
+    )
+
+
+@app.exception_handler(ServiceUnavailableError)
+async def handle_service_unavailable(request, exc: ServiceUnavailableError):
+    return JSONResponse(
+        status_code=503,
+        content={"error": "service_unavailable", "detail": str(exc)}
+    )
 
 
 @app.on_event("startup")

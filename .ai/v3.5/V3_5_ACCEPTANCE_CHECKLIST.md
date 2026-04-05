@@ -93,11 +93,43 @@
 
 当以下条件全部满足时，可判定 V3.5 Phase A 完成：
 
-- Odoo 真实只读接入已完成
-- 现有 Integration Center API 保持可用
-- explain-status 对真实数据可用
-- Admin Console 页面可验证真实数据
-- tests 通过
-- 文档同步完成
-- 可作为下一阶段写回或流程联动的基线版本
+- [x] Odoo 真实只读接入已完成
+- [x] 现有 Integration Center API 保持可用
+- [x] explain-status 对真实数据可用
+- [x] Admin Console 页面可验证真实数据
+- [x] tests 通过
+- [x] 文档同步完成
+- [x] 可作为下一阶段写回或流程联动的基线版本
+
+***
+
+## 七、V3.5 全阶段完成确认
+
+| 子阶段 | 状态 |
+|--------|------|
+| Phase A：真实只读接入 | ✅ 已完成 |
+| Phase B.1：Provider 选择 + 可观测性 | ✅ 已完成 |
+| Phase B.2.1：受控定时刷新 | ✅ 已完成 |
+| Phase B.2.2：Snapshot 保留策略 | ✅ 已完成 |
+| Phase B.3：order_exception 真实来源升级 | ✅ 已完成（limited_support） |
+
+### order_exception 最终口径
+
+- limited_support 验收通过
+- 主来源：stock.picking（delay / cancelled）
+- 兼容 fallback：sale.order
+- 当前环境无真实异常样本
+- 不宣称"全量真实异常链路完成"
+
+### V3.5 封板确认
+
+V3.5 已完成全部既定范围并正式封板。详见 [V3_5_CLOSURE_SUMMARY.md](./V3_5_CLOSURE_SUMMARY.md)。
+
+### V3.5 之外的额外联调问题（独立于 V3.5 主线）
+
+- 消息持久化（agent/customer 消息写入 DB，已通）
+- 真实 PlatformSim 回复（端口 9000 未启动）
+- conv1 / PlatformSim 实时链路验收
+
+这些是独立联调问题，不是 V3.5 主线未完成项。
 

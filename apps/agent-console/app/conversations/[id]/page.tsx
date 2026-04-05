@@ -1,11 +1,16 @@
 "use client";
 
-import { useState, useEffect, use } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useParams } from "next/navigation";
 import FollowupPanel from "./components/FollowupPanel";
 import RecommendationPanel from "./components/RecommendationPanel";
 import RiskFlagPanel from "./components/RiskFlagPanel";
 import CustomerProfilePanel from "./components/CustomerProfilePanel";
+import QualityInspectionPanel from "./components/QualityInspectionPanel";
+import { autoEvaluateFollowup } from "../../lib/followup";
+import { autoEvaluateRecommendation } from "../../lib/recommendation";
+import { autoEvaluateRisk } from "../../lib/riskFlag";
+import { autoEvaluateQuality } from "../../lib/quality";
 
 interface Message {
   id: string;
@@ -26,33 +31,101 @@ interface Conversation {
   assigned_agent: string | null;
 }
 
+interface OrderItem {
+  sku_id: string;
+  sku_name: string;
+  quantity: number;
+  price: number;
+  sub_total: number;
+}
+
 interface Order {
   order_id: string;
   status: string;
   status_name: string;
-  create_time: string;
+  create_time: string | null;
+  pay_time: string | null;
+  total_amount: number;
   payment_amount: number;
-  receiver_name: string;
-  receiver_phone: string;
-  items: { sku_name: string; quantity: number }[];
+  buyer_nick: string | null;
+  buyer_phone: string | null;
+  receiver_name: string | null;
+  receiver_phone: string | null;
+  receiver_address: {
+    province: string;
+    city: string;
+    district: string;
+    detail: string;
+  } | null;
+  items: OrderItem[];
+}
+
+interface ShipmentTrace {
+  time: string;
+  message: string;
+  location: string;
+}
+
+interface ShipmentEntry {
+  shipment_id: string;
+  express_company: string;
+  express_no: string;
+  status: string;
+  status_name: string;
+  create_time: string | null;
+  estimated_arrival: string | null;
+  trace: ShipmentTrace[];
 }
 
 interface Shipment {
-  shipments: {
-    express_company: string;
-    express_no: string;
-    status: string;
-    status_name: string;
-  }[];
+  order_id: string;
+  shipments: ShipmentEntry[];
 }
 
 interface AfterSale {
   after_sale_id: string;
+  order_id: string;
   type: string;
   type_name: string;
   status: string;
   status_name: string;
+  apply_time: string | null;
+  handle_time: string | null;
   apply_amount: number;
+  approve_amount: number;
+  reason: string | null;
+  reason_detail: string | null;
+}
+
+interface InventoryItem {
+  sku_id: string;
+  product_id: string;
+  product_name: string;
+  stock_state: string;
+  quantity: number;
+  warehouse_name: string;
+}
+
+interface Inventory {
+  order_id: string;
+  items: InventoryItem[];
+}
+
+interface ContextOrder {
+  internal_order_id: number;
+  link_type: string;
+  platform: string | null;
+  external_order_id: string | null;
+  order_core_status: string | null;
+  order: Order | null;
+  shipment: Shipment | null;
+  after_sales: AfterSale[];
+  inventory: Inventory | null;
+}
+
+interface ConversationContext {
+  conversation_id: number;
+  orders: ContextOrder[];
 }
 
 interface AISuggestion {
@@ -62,12 +135,23 @@ interface AISuggestion {
   used_tools: string[];
   risk_level: string;
   needs_human_review: boolean;
+  source_summary?: string | null;
 }
 
 const platformLabels: Record<string, string> = {
   jd: "京东",
+  taobao: "淘宝",
   douyin_shop: "抖音",
   wecom_kf: "企微",
+  kuaishou: "快手",
+  xhs: "小红书",
+};
+
+const stockStateLabels: Record<string, string> = {
+  in_stock: "有货",
+  low_stock: "低库存",
+  out_of_stock: "缺货",
+  pre_order: "预售",
 };
 
 function ConversationHeader({ conversation }: { conversation: Conversation }) {
@@ -188,8 +272,14 @@ function OrderPanel({ order, platform }: { order: Order | null; platform?: strin
         </div>
         <div className="flex justify-between">
           <span className="text-gray-500">收货人:</span>
-          <span>{order.receiver_name}</span>
+          <span>{order.receiver_name || "-"}</span>
         </div>
+        {order.receiver_address?.city && (
+          <div className="flex justify-between">
+            <span className="text-gray-500">收货地:</span>
+            <span>{order.receiver_address.city}{order.receiver_address.district || ""}</span>
+          </div>
+        )}
         <div className="mt-3 pt-3 border-t">
           <p className="text-gray-500 mb-1">商品:</p>
           {(order.items || []).map((item, idx) => (
@@ -217,7 +307,7 @@ function ShipmentPanel({ shipment, platform }: { shipment: Shipment | null; plat
     <div className="bg-white rounded-lg shadow p-4">
       <h3 className="font-medium text-lg mb-3">物流信息</h3>
       {shipment.shipments.map((ship, idx) => (
-        <div key={idx} className="space-y-2 text-sm">
+        <div key={idx} className="space-y-2 text-sm mb-3 last:mb-0">
           <div className="flex justify-between">
             <span className="text-gray-500">快递:</span>
             <span>{ship.express_company}</span>
@@ -230,14 +320,25 @@ function ShipmentPanel({ shipment, platform }: { shipment: Shipment | null; plat
             <span className="text-gray-500">状态:</span>
             <span>{ship.status_name}</span>
           </div>
+          {ship.trace.length > 0 && (
+            <div className="mt-2 pt-2 border-t">
+              <p className="text-gray-500 mb-1">最新物流:</p>
+              <p className="text-xs text-gray-600">
+                {ship.trace[0].message}
+              </p>
+              <p className="text-xs text-gray-400 mt-1">
+                {ship.trace[0].time ? new Date(ship.trace[0].time).toLocaleString("zh-CN") : ""}
+              </p>
+            </div>
+          )}
         </div>
       ))}
     </div>
   );
 }
 
-function AfterSalePanel({ afterSale, platform }: { afterSale: AfterSale | null; platform?: string }) {
-  if (!afterSale) return (
+function AfterSalePanel({ afterSales, platform }: { afterSales: AfterSale[]; platform?: string }) {
+  if (!afterSales || afterSales.length === 0) return (
     <div className="bg-white rounded-lg shadow p-4">
       <h3 className="font-medium text-lg mb-3">售后信息</h3>
       <p className="text-sm text-gray-500">
@@ -248,25 +349,117 @@ function AfterSalePanel({ afterSale, platform }: { afterSale: AfterSale | null; 
   
   return (
     <div className="bg-white rounded-lg shadow p-4">
-      <h3 className="font-medium text-lg mb-3">售后信息</h3>
-      <div className="space-y-2 text-sm">
-        <div className="flex justify-between">
-          <span className="text-gray-500">售后单号:</span>
-          <span>{afterSale.after_sale_id}</span>
+      <h3 className="font-medium text-lg mb-3">售后信息 ({afterSales.length})</h3>
+      {afterSales.map((as, idx) => (
+        <div key={idx} className="space-y-2 text-sm mb-3 last:mb-0">
+          <div className="flex justify-between">
+            <span className="text-gray-500">售后单号:</span>
+            <span>{as.after_sale_id}</span>
+          </div>
+          <div className="flex justify-between">
+            <span className="text-gray-500">类型:</span>
+            <span>{as.type_name}</span>
+          </div>
+          <div className="flex justify-between">
+            <span className="text-gray-500">状态:</span>
+            <span>{as.status_name}</span>
+          </div>
+          <div className="flex justify-between">
+            <span className="text-gray-500">金额:</span>
+            <span>¥{as.apply_amount}</span>
+          </div>
+          {as.reason && (
+            <div className="mt-2 pt-2 border-t">
+              <p className="text-gray-500 mb-1">原因:</p>
+              <p className="text-xs text-gray-600">{as.reason}</p>
+            </div>
+          )}
         </div>
-        <div className="flex justify-between">
-          <span className="text-gray-500">类型:</span>
-          <span>{afterSale.type_name}</span>
+      ))}
+    </div>
+  );
+}
+
+function InventoryPanel({ inventory, platform }: { inventory: Inventory | null; platform?: string }) {
+  const [expanded, setExpanded] = useState(false);
+
+  if (!inventory || !inventory.items?.length) return (
+    <div className="bg-white rounded-lg shadow p-4">
+      <h3 className="font-medium text-lg mb-3">库存信息</h3>
+      <p className="text-sm text-gray-500">
+        {platform === "wecom_kf" ? "当前平台暂不支持库存信息" : "暂无库存信息"}
+      </p>
+    </div>
+  );
+
+  const items = inventory.items;
+  const outOfStock = items.filter(i => i.stock_state === "out_of_stock");
+  const lowStock = items.filter(i => i.stock_state === "low_stock");
+  const inStock = items.filter(i => i.stock_state === "in_stock");
+
+  let overallLabel = "库存充足";
+  let overallColor = "text-green-600";
+  if (outOfStock.length > 0) {
+    overallLabel = "存在缺货风险";
+    overallColor = "text-red-600";
+  } else if (lowStock.length > 0) {
+    overallLabel = "存在低库存";
+    overallColor = "text-yellow-600";
+  }
+
+  // Sort: out_of_stock first, then low_stock, then in_stock
+  const sorted = [...items].sort((a, b) => {
+    const order = { out_of_stock: 0, low_stock: 1, in_stock: 2 };
+    return (order[a.stock_state as keyof typeof order] ?? 3) - (order[b.stock_state as keyof typeof order] ?? 3);
+  });
+
+  const displayItems = expanded ? sorted : sorted.slice(0, 5);
+
+  return (
+    <div className="bg-white rounded-lg shadow p-4">
+      <h3 className="font-medium text-lg mb-3">库存信息</h3>
+      {/* Summary */}
+      <div className="mb-3 p-2 bg-gray-50 rounded text-xs">
+        <div className="flex justify-between items-center">
+          <span className="text-gray-500">SKU 总数: {items.length}</span>
+          <span className={`font-medium ${overallColor}`}>{overallLabel}</span>
         </div>
-        <div className="flex justify-between">
-          <span className="text-gray-500">状态:</span>
-          <span>{afterSale.status_name}</span>
-        </div>
-        <div className="flex justify-between">
-          <span className="text-gray-500">金额:</span>
-          <span>¥{afterSale.apply_amount}</span>
+        <div className="flex gap-3 mt-1 text-gray-400">
+          <span>有货 {inStock.length}</span>
+          <span>低库存 {lowStock.length}</span>
+          <span>缺货 {outOfStock.length}</span>
         </div>
       </div>
+      {/* Items */}
+      {displayItems.map((item, idx) => (
+        <div key={idx} className="flex items-center justify-between py-1.5 text-xs border-b last:border-0">
+          <div className="flex-1 min-w-0">
+            <span className="font-medium truncate block">{item.product_name || item.sku_id}</span>
+            {item.warehouse_name && (
+              <span className="text-gray-400">{item.warehouse_name}</span>
+            )}
+          </div>
+          <div className="flex items-center gap-2 ml-2 shrink-0">
+            <span className={`px-1.5 py-0.5 rounded text-xs ${
+              item.stock_state === "out_of_stock" ? "bg-red-100 text-red-700" :
+              item.stock_state === "low_stock" ? "bg-yellow-100 text-yellow-700" :
+              "bg-green-100 text-green-700"
+            }`}>
+              {stockStateLabels[item.stock_state] || item.stock_state}
+            </span>
+            <span className="text-gray-500 w-8 text-right">{item.quantity}</span>
+          </div>
+        </div>
+      ))}
+      {/* Expand/Collapse */}
+      {items.length > 5 && (
+        <button
+          onClick={() => setExpanded(!expanded)}
+          className="w-full mt-2 text-xs text-blue-600 hover:text-blue-800 py-1"
+        >
+          {expanded ? `收起` : `查看全部 ${items.length} 个 SKU`}
+        </button>
+      )}
     </div>
   );
 }
@@ -323,6 +516,12 @@ function SuggestionPanel({
           </span>
         </div>
       </div>
+      {suggestion.source_summary && (
+        <div className="bg-amber-50 border border-amber-200 p-3 rounded mb-3">
+          <p className="text-xs text-amber-700 font-medium mb-1">业务依据</p>
+          <p className="text-xs text-amber-800">{suggestion.source_summary}</p>
+        </div>
+      )}
       <div className="bg-gray-50 p-3 rounded mb-4">
         <p className="text-sm">{suggestion.suggested_reply || "暂无建议内容"}</p>
       </div>
@@ -347,26 +546,28 @@ function SuggestionPanel({
   );
 }
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
-
 export default function ConversationDetailPage() {
   const params = useParams();
   const convId = params.id as string;
   const [conversation, setConversation] = useState<Conversation | null>(null);
   const [messages, setMessages] = useState<Message[]>([]);
-  const [order, setOrder] = useState<Order | null>(null);
-  const [shipment, setShipment] = useState<Shipment | null>(null);
-  const [afterSale, setAfterSale] = useState<AfterSale | null>(null);
+  const [context, setContext] = useState<ConversationContext | null>(null);
   const [suggestion, setSuggestion] = useState<AISuggestion | null>(null);
   const [replyText, setReplyText] = useState("");
+  const [customerReplyText, setCustomerReplyText] = useState("");
   const [loading, setLoading] = useState(true);
+  const evaluatedRef = useRef(false);
 
   useEffect(() => {
+    if (evaluatedRef.current) return;
+    evaluatedRef.current = true;
+
     async function fetchData() {
       try {
-        const [convRes, msgRes] = await Promise.all([
+        const [convRes, msgRes, ctxRes] = await Promise.all([
           fetch(`/api/conversations/${convId}`),
           fetch(`/api/conversations/${convId}/messages`),
+          fetch(`/api/conversations/${convId}/context`),
         ]);
         
         const convData = await convRes.json();
@@ -375,48 +576,11 @@ export default function ConversationDetailPage() {
         setConversation(convData);
         setMessages(msgData.items || []);
         
-        const contextMap: Record<string, { platform: string; orderId?: string; afterSaleId?: string; isEcommerce?: boolean }> = {
-          "conv1": { platform: "jd", orderId: "304857291638", afterSaleId: "304618372956", isEcommerce: true },
-          "conv2": { platform: "jd", orderId: "304912847563", afterSaleId: "304781234567", isEcommerce: true },
-          "conv3": { platform: "taobao", orderId: "4728561930472815", afterSaleId: "4728391847263951", isEcommerce: true },
-          "conv4": { platform: "taobao", orderId: "4729183746291847", afterSaleId: null, isEcommerce: true },
-          "conv5": { platform: "douyin_shop", orderId: "6847291038472910", afterSaleId: "6846183729104857", isEcommerce: true },
-          "conv6": { platform: "douyin_shop", orderId: "6847391827463910", afterSaleId: "6846291837465029", isEcommerce: true },
-          "conv7": { platform: "wecom_kf", isEcommerce: false },
-        };
-        const ctx = contextMap[convId];
-        if (ctx?.isEcommerce && ctx.orderId) {
-          const orderRes = await fetch(`/api/orders/${ctx.platform}/${ctx.orderId}`);
-          const orderData = await orderRes.json();
-          setOrder(orderData.order_id ? orderData : null);
-
-          if (ctx.platform !== "wecom_kf") {
-            const shipmentRes = await fetch(`/api/shipments/${ctx.platform}/${ctx.orderId}`);
-            const shipmentData = await shipmentRes.json();
-            setShipment(shipmentData && shipmentData.shipments && shipmentData.shipments.length > 0 ? shipmentData : null);
-          } else {
-            setShipment(null);
-          }
-
-          if (ctx.afterSaleId) {
-            try {
-              const afterSaleRes = await fetch(`/api/after-sales/${ctx.platform}/${ctx.afterSaleId}`);
-              if (afterSaleRes.ok) {
-                const afterSaleData = await afterSaleRes.json();
-                setAfterSale(afterSaleData && afterSaleData.after_sale_id ? afterSaleData : null);
-              } else {
-                setAfterSale(null);
-              }
-            } catch {
-              setAfterSale(null);
-            }
-          } else {
-            setAfterSale(null);
-          }
-        } else if (ctx && !ctx.isEcommerce) {
-          setOrder(null);
-          setShipment(null);
-          setAfterSale(null);
+        if (ctxRes.ok) {
+          const ctxData = await ctxRes.json();
+          setContext(ctxData);
+        } else {
+          setContext(null);
         }
       } catch (error) {
         console.error("Failed to fetch conversation data:", error);
@@ -427,16 +591,34 @@ export default function ConversationDetailPage() {
     fetchData();
   }, [convId]);
 
-  const handleSend = async (text: string) => {
-    const newMsg: Message = {
-      id: `msg_${Date.now()}`,
-      direction: "outbound",
-      content: text,
-      sender: "agent",
-      create_time: new Date().toISOString(),
-    };
-    setMessages([...messages, newMsg]);
+  useEffect(() => {
+    if (!context || !conversation) return;
 
+    const customerId = conversation.customer_pk;
+    const convIdStr = String(conversation.conversation_pk || convId);
+
+    async function runAutoEvaluations() {
+      const evaluations = [];
+
+      if (customerId) {
+        evaluations.push(
+          autoEvaluateFollowup(convIdStr, customerId).catch((e) => console.warn("Auto-evaluate followup failed:", e)),
+          autoEvaluateRecommendation(convIdStr, customerId).catch((e) => console.warn("Auto-evaluate recommendation failed:", e)),
+          autoEvaluateRisk(convIdStr, customerId).catch((e) => console.warn("Auto-evaluate risk failed:", e)),
+        );
+      }
+
+      evaluations.push(
+        autoEvaluateQuality(convIdStr).catch((e) => console.warn("Auto-evaluate quality failed:", e)),
+      );
+
+      await Promise.allSettled(evaluations);
+    }
+
+    runAutoEvaluations();
+  }, [context, conversation, convId]);
+
+  const handleSend = async (text: string) => {
     try {
       const response = await fetch(`/api/messages`, {
         method: "POST",
@@ -450,34 +632,38 @@ export default function ConversationDetailPage() {
       });
 
       if (response.ok) {
-        const data = await response.json();
-        if (data.user_reply) {
-          const userMsg: Message = {
-            id: `msg_${Date.now() + 1}`,
-            direction: "inbound",
-            content: data.user_reply,
-            sender: "customer",
-            create_time: new Date().toISOString(),
-          };
-          setMessages((prev) => [...prev, userMsg]);
+        const fetchMsgs = await fetch(`/api/conversations/${convId}/messages`);
+        if (fetchMsgs.ok) {
+          const msgData = await fetchMsgs.json();
+          setMessages(msgData.items || []);
         }
       }
+    } catch (error) {
+      console.error("Failed to send message:", error);
+    }
+  };
 
-      await fetch(`/api/audit-logs`, {
+  const handleCustomerSend = async (text: string) => {
+    try {
+      const response = await fetch(`/api/messages/inbound`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          action: "message_sent",
-          actor_type: "agent",
-          actor_id: "agent_001",
-          target_type: "message",
-          target_id: newMsg.id,
-          detail: `Sent message in conversation: ${convId}`,
-          detail_json: { conversation_id: convId, content: text },
+          conversation_id: convId,
+          content: text,
         }),
       });
+
+      if (response.ok) {
+        const fetchMsgs = await fetch(`/api/conversations/${convId}/messages`);
+        if (fetchMsgs.ok) {
+          const msgData = await fetchMsgs.json();
+          setMessages(msgData.items || []);
+        }
+        setCustomerReplyText("");
+      }
     } catch (error) {
-      console.error("Failed to send message:", error);
+      console.error("Failed to send customer message:", error);
     }
   };
 
@@ -509,6 +695,13 @@ export default function ConversationDetailPage() {
   if (loading) return <div className="p-8 text-center">加载中...</div>;
   if (!conversation) return <div className="p-8 text-center">会话不存在</div>;
 
+  const firstOrder = context?.orders?.[0] || null;
+  const orderData = firstOrder?.order || null;
+  const shipmentData = firstOrder?.shipment || null;
+  const afterSalesData = firstOrder?.after_sales || [];
+  const inventoryData = firstOrder?.inventory || null;
+  const platform = firstOrder?.platform || conversation.platform;
+
   return (
     <div className="h-screen flex flex-col bg-gray-50">
       <ConversationHeader conversation={conversation} />
@@ -516,11 +709,38 @@ export default function ConversationDetailPage() {
         <div className="flex-1 flex flex-col">
           <MessageStream messages={messages} />
           <ReplyComposer onSend={handleSend} initialText={replyText} />
+          <div className="border-t bg-yellow-50 p-3">
+            <p className="text-xs text-yellow-700 mb-2">🔧 开发态：模拟客户回复</p>
+            <div className="flex gap-2">
+              <input
+                className="flex-1 border rounded px-3 py-2 text-sm"
+                placeholder="输入客户回复内容..."
+                value={customerReplyText}
+                onChange={(e) => setCustomerReplyText(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter" && customerReplyText.trim()) {
+                    handleCustomerSend(customerReplyText.trim());
+                  }
+                }}
+              />
+              <button
+                onClick={() => {
+                  if (customerReplyText.trim()) {
+                    handleCustomerSend(customerReplyText.trim());
+                  }
+                }}
+                className="px-3 py-2 bg-yellow-600 text-white text-sm rounded hover:bg-yellow-700"
+              >
+                发送
+              </button>
+            </div>
+          </div>
         </div>
         <div className="w-80 border-l bg-gray-100 p-4 space-y-4 overflow-y-auto">
-          <OrderPanel order={order} platform={conversation?.platform} />
-          <ShipmentPanel shipment={shipment} platform={conversation?.platform} />
-          <AfterSalePanel afterSale={afterSale} platform={conversation?.platform} />
+          <OrderPanel order={orderData} platform={platform} />
+          <ShipmentPanel shipment={shipmentData} platform={platform} />
+          <AfterSalePanel afterSales={afterSalesData} platform={platform} />
+          <InventoryPanel inventory={inventoryData} platform={platform} />
           <SuggestionPanel
             suggestion={suggestion}
             onApply={handleApplySuggestion}
@@ -537,6 +757,9 @@ export default function ConversationDetailPage() {
           )}
           {conversation?.customer_pk && (
             <CustomerProfilePanel customerPk={conversation.customer_pk} />
+          )}
+          {conversation?.conversation_pk && (
+            <QualityInspectionPanel conversationPk={conversation.conversation_pk} />
           )}
         </div>
       </div>

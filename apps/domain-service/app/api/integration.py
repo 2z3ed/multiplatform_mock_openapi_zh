@@ -10,6 +10,8 @@ from app.schemas.integration import (
     OrderExceptionSnapshotResponse,
     ExplainStatusRequest,
     ExplainStatusResponse,
+    ConversationExplainRequest,
+    ConversationExplainResponse,
     SyncStatusResponse,
 )
 from app.services.integration_service import IntegrationService
@@ -163,4 +165,22 @@ def get_sync_status(
     result = service.get_latest_sync_status()
     if result is None:
         raise HTTPException(status_code=404, detail="No sync status found")
+    return result
+
+
+@router.post("/explain/conversation", response_model=ConversationExplainResponse)
+def explain_conversation_status(
+    req: ConversationExplainRequest,
+    db: Session = Depends(get_db),
+):
+    from app.services.context_aggregation_service import aggregate_conversation_context
+    from app.services.explain_service import explain_from_context
+
+    try:
+        conv_id = int(req.conversation_id)
+    except (ValueError, TypeError):
+        raise HTTPException(status_code=400, detail="Invalid conversation_id")
+
+    context = aggregate_conversation_context(db, conv_id)
+    result = explain_from_context(context)
     return result

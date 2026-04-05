@@ -23,3 +23,17 @@ class RiskFlagResponse(BaseModel):
     status: str
     created_at: Optional[str] = None
     updated_at: Optional[str] = None
+
+    class Config:
+        from_attributes = True
+
+
+class AutoEvaluateRiskRequest(BaseModel):
+    conversation_id: str
+    customer_id: int
+    amount_threshold: Optional[int] = 5000
+
+
+class AutoEvaluateRiskResponse(BaseModel):
+    created_flags: list[RiskFlagResponse]
+    skipped: int

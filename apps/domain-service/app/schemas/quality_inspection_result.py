@@ -19,3 +19,12 @@ class QualityInspectionResultResponse(BaseModel):
 
 class QualityInspectRequest(BaseModel):
     conversation_id: int
+
+
+class AutoEvaluateQualityRequest(BaseModel):
+    conversation_id: str
+
+
+class AutoEvaluateQualityResponse(BaseModel):
+    created_results: list[QualityInspectionResultResponse]
+    skipped: int

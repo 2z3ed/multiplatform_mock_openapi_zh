@@ -68,6 +68,9 @@ export function extractCustomerIdNumber(customerIdString: string): number | null
 const riskTypeLabels: Record<string, string> = {
   negative_sentiment: "负面情绪",
   complaint_tendency: "投诉倾向",
+  frequent_after_sale: "高频售后",
+  high_amount_order: "高金额订单",
+  fulfillment_conflict: "履约冲突",
 };
 
 const riskLevelLabels: Record<string, string> = {
@@ -92,4 +95,22 @@ export function getRiskLevelLabel(riskLevel: string): string {
 
 export function getStatusLabel(status: string): string {
   return statusLabels[status] || status;
+}
+
+export interface AutoEvaluateRiskResponse {
+  created_flags: RiskFlag[];
+  skipped: number;
+}
+
+export async function autoEvaluateRisk(
+  conversationId: string,
+  customerId: number,
+): Promise<AutoEvaluateRiskResponse> {
+  return fetchAPI<AutoEvaluateRiskResponse>(`/api/risk-flags/auto-evaluate`, {
+    method: "POST",
+    body: JSON.stringify({
+      conversation_id: conversationId,
+      customer_id: customerId,
+    }),
+  });
 }

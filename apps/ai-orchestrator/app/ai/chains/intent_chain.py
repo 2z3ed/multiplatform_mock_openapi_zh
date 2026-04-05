@@ -2,7 +2,7 @@
 
 from typing import Literal
 
-IntentType = Literal["faq", "order_query", "shipment_query", "after_sale_query", "unknown"]
+IntentType = Literal["faq", "order_query", "shipment_query", "after_sale_query", "inventory_query", "unknown"]
 
 
 class IntentClassifier:
@@ -11,6 +11,7 @@ class IntentClassifier:
             "order_query": ["订单", "订单号", "下单", "买", "订单状态"],
             "shipment_query": ["物流", "快递", "发货", "运输", "到哪了", "追踪"],
             "after_sale_query": ["退款", "退货", "售后", "取消订单", "退货"],
+            "inventory_query": ["库存", "有没有货", "缺货", "补发", "换货", "还有货"],
             "faq": ["怎么", "如何", "请问", "是什么", "哪里", "多少"]
         }
 

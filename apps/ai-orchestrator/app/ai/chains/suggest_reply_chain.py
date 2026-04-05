@@ -21,6 +21,33 @@ class SuggestReplyChain:
     def __init__(self):
         self.model = get_chat_model(temperature=0.5)
 
+    def _fallback_reply(self, message: str, intent: str, context: Optional[dict] = None) -> str:
+        """Rule-based fallback reply when LLM is unavailable."""
+        context_info = ""
+        if context and context.get("formatted"):
+            context_info = context["formatted"]
+
+        if intent == "order_query":
+            if context_info:
+                return f"您好，已为您查询到订单信息。{context_info[:100]}。如有其他问题请随时联系我们。"
+            return "您好，已为您查询订单，请提供更多信息以便我们为您核实。"
+        elif intent == "shipment_query":
+            if context_info:
+                return f"您好，已为您查询物流信息。{context_info[:100]}。请耐心等待，如有异常我们会及时通知。"
+            return "您好，当前暂无物流信息，我们会尽快为您核实物流状态。"
+        elif intent == "after_sale_query":
+            if context_info:
+                return f"您好，已为您查询售后信息。{context_info[:100]}。我们会尽快处理，请耐心等待。"
+            return "您好，当前暂无可确认的售后信息，请提供售后单号以便我们核实。"
+        elif intent == "inventory_query":
+            if context_info:
+                return f"您好，已为您查询库存。{context_info[:100]}。如需下单请尽快操作。"
+            return "您好，当前暂无可确认的库存信息，请提供商品信息以便我们核实。"
+        elif intent == "faq":
+            return "您好，感谢您的咨询，我们正在为您核实相关信息。"
+        else:
+            return "您好，感谢您的消息，我们正在为您处理，请稍等。"
+
     def generate(
         self,
         message: str,
@@ -30,11 +57,13 @@ class SuggestReplyChain:
     ) -> dict:
         used_tools = []
 
-        if intent in ["order_query", "shipment_query", "after_sale_query"]:
+        if intent in ["order_query", "shipment_query", "after_sale_query", "inventory_query"]:
             used_tools.append(f"get_{intent}")
 
         context_info = ""
-        if intent == "order_query" and context:
+        if context and context.get("formatted"):
+            context_info = context["formatted"]
+        elif intent == "order_query" and context:
             status = context.get("status_name", context.get("status", "未知"))
             order_id = context.get("order_id", context.get("internal_order_id", ""))
             context_info = f"订单状态: {status}"
@@ -84,43 +113,104 @@ class SuggestReplyChain:
                 parts.append(f"数据来源: {source}")
                 context_info = "，".join(parts)
             else:
-                status = context.get("status_name", context.get("status", "未知"))
-                if status != "未知":
-                    context_info = f"售后状态: {status}"
+                after_sales = context.get("after_sales", [])
+                if after_sales:
+                    parts = []
+                    for i, as_item in enumerate(after_sales[:2]):
+                        prefix = f"售后{i+1}" if len(after_sales) > 1 else "售后"
+                        status = as_item.get("status_name", as_item.get("status", "未知"))
+                        parts.append(f"{prefix}状态: {status}")
+                        if as_item.get("type_name"):
+                            parts.append(f"{prefix}类型: {as_item['type_name']}")
+                        if as_item.get("apply_amount"):
+                            parts.append(f"{prefix}金额: ¥{as_item['apply_amount']}")
+                        if as_item.get("reason"):
+                            parts.append(f"{prefix}原因: {as_item['reason']}")
+                    context_info = "，".join(parts)
                 else:
-                    context_info = "当前暂无可确认的售后信息"
-
-        if intent == "faq" and kb_results:
-            used_tools.append("search_kb")
-            kb_context = "\n".join([r.get("content", "") for r in kb_results[:3]])
-            prompt = f"{SYSTEM_PROMPT}\n\n用户问题: {message}\n\n知识库参考:\n{kb_context}\n\n请直接生成客服回复："
-            suggested_reply = self.model.invoke([
-                {"role": "system", "content": SYSTEM_PROMPT},
-                {"role": "user", "content": f"用户问题: {message}\n\n知识库参考:\n{kb_context}\n\n请直接生成客服回复："}
-            ])
-        elif context_info:
-            prompt = f"{SYSTEM_PROMPT}\n\n用户问题: {message}\n\n查询结果: {context_info}\n\n请直接生成客服回复："
-            suggested_reply = self.model.invoke([
-                {"role": "system", "content": SYSTEM_PROMPT},
-                {"role": "user", "content": f"用户问题: {message}\n\n查询结果: {context_info}\n\n请直接生成客服回复："}
-            ])
-        else:
-            prompt = f"{SYSTEM_PROMPT}\n\n用户问题: {message}\n\n请直接生成客服回复："
-            suggested_reply = self.model.invoke([
-                {"role": "system", "content": SYSTEM_PROMPT},
-                {"role": "user", "content": f"用户问题: {message}\n\n请直接生成客服回复："}
-            ])
+                    status = context.get("status_name", context.get("status", "未知"))
+                    if status != "未知":
+                        context_info = f"售后状态: {status}"
+                    else:
+                        context_info = "当前暂无可确认的售后信息"
+        elif intent == "inventory_query" and context:
+            if context.get("resolved"):
+                items = context.get("items", [])
+                if items:
+                    parts = []
+                    for item in items[:5]:
+                        name = item.get("product_name", item.get("sku_id", ""))
+                        stock = item.get("stock_state", "未知")
+                        qty = item.get("quantity", 0)
+                        parts.append(f"{name}: {stock} ({qty}件)")
+                    context_info = "库存信息: " + "，".join(parts)
+                else:
+                    context_info = "当前暂无可确认的库存信息"
+            else:
+                items = context.get("items", [])
+                if items:
+                    parts = []
+                    for item in items[:5]:
+                        name = item.get("product_name", item.get("sku_id", ""))
+                        stock = item.get("stock_state", "未知")
+                        qty = item.get("quantity", 0)
+                        parts.append(f"{name}: {stock} ({qty}件)")
+                    context_info = "库存信息: " + "，".join(parts)
+                else:
+                    context_info = "当前暂无可确认的库存信息"
 
         risk_level = "low"
         if any(word in message.lower() for word in ["投诉", "退款", "退货"]):
             risk_level = "medium"
 
+        llm_used = True
+        if intent == "faq" and kb_results:
+            used_tools.append("search_kb")
+            kb_context = "\n".join([r.get("content", "") for r in kb_results[:3]])
+            prompt = f"{SYSTEM_PROMPT}\n\n用户问题: {message}\n\n知识库参考:\n{kb_context}\n\n请直接生成客服回复："
+            try:
+                suggested_reply = self.model.invoke([
+                    {"role": "system", "content": SYSTEM_PROMPT},
+                    {"role": "user", "content": f"用户问题: {message}\n\n知识库参考:\n{kb_context}\n\n请直接生成客服回复："}
+                ])
+            except Exception as e:
+                print(f"LLM call failed: {e}")
+                suggested_reply = self._fallback_reply(message, intent, context)
+                llm_used = False
+        elif context_info:
+            prompt = f"{SYSTEM_PROMPT}\n\n用户问题: {message}\n\n查询结果: {context_info}\n\n请直接生成客服回复："
+            try:
+                suggested_reply = self.model.invoke([
+                    {"role": "system", "content": SYSTEM_PROMPT},
+                    {"role": "user", "content": f"用户问题: {message}\n\n查询结果: {context_info}\n\n请直接生成客服回复："}
+                ])
+            except Exception as e:
+                print(f"LLM call failed: {e}")
+                suggested_reply = self._fallback_reply(message, intent, context)
+                llm_used = False
+        else:
+            prompt = f"{SYSTEM_PROMPT}\n\n用户问题: {message}\n\n请直接生成客服回复："
+            try:
+                suggested_reply = self.model.invoke([
+                    {"role": "system", "content": SYSTEM_PROMPT},
+                    {"role": "user", "content": f"用户问题: {message}\n\n请直接生成客服回复："}
+                ])
+            except Exception as e:
+                print(f"LLM call failed: {e}")
+                suggested_reply = self._fallback_reply(message, intent, context)
+                llm_used = False
+
+        source_summary = context.get("formatted", "") if context and context.get("formatted") else ""
+
         return {
             "intent": intent,
-            "confidence": 0.8,
+            "confidence": 0.8 if llm_used else 0.6,
             "suggested_reply": suggested_reply,
             "used_tools": used_tools,
             "risk_level": risk_level,
+            "source_summary": source_summary,
+            "degraded": not llm_used,
+            "fallback_reason": None if llm_used else "llm_unavailable",
         }
 
 

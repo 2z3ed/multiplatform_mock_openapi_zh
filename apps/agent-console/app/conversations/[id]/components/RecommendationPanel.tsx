@@ -7,6 +7,7 @@ import {
   acceptRecommendation,
   rejectRecommendation,
   getStatusLabel,
+  getRuleLabel,
 } from "../../../lib/recommendation";
 
 interface RecommendationPanelProps {
@@ -70,7 +71,7 @@ export default function RecommendationPanel({ conversationPk }: RecommendationPa
   if (loading) {
     return (
       <div className="bg-white rounded-lg shadow p-4">
-        <h3 className="font-medium text-lg mb-3">推荐商品</h3>
+        <h3 className="font-medium text-lg mb-3">推荐方案</h3>
         <p className="text-sm text-gray-500">加载中...</p>
       </div>
     );
@@ -79,7 +80,7 @@ export default function RecommendationPanel({ conversationPk }: RecommendationPa
   if (error) {
     return (
       <div className="bg-white rounded-lg shadow p-4">
-        <h3 className="font-medium text-lg mb-3">推荐商品</h3>
+        <h3 className="font-medium text-lg mb-3">推荐方案</h3>
         <p className="text-sm text-red-500">{error}</p>
       </div>
     );
@@ -88,7 +89,7 @@ export default function RecommendationPanel({ conversationPk }: RecommendationPa
   if (recommendations.length === 0) {
     return (
       <div className="bg-white rounded-lg shadow p-4">
-        <h3 className="font-medium text-lg mb-3">推荐商品</h3>
+        <h3 className="font-medium text-lg mb-3">推荐方案</h3>
         <p className="text-sm text-gray-500">暂无推荐记录</p>
       </div>
     );
@@ -96,16 +97,21 @@ export default function RecommendationPanel({ conversationPk }: RecommendationPa
 
   return (
     <div className="bg-white rounded-lg shadow p-4">
-      <h3 className="font-medium text-lg mb-3">推荐商品</h3>
+      <h3 className="font-medium text-lg mb-3">推荐方案</h3>
       <div className="space-y-3">
-        {recommendations.map((rec) => (
+        {recommendations.map((rec) => {
+          const rule = rec.extra_json?.rule as string | undefined;
+          const action = rec.extra_json?.recommended_action as string | undefined;
+          return (
           <div key={rec.id} className="border rounded p-3 text-sm">
             <div className="flex justify-between items-start mb-2">
               <div>
                 <span className="font-medium">{rec.product_name}</span>
-                <span className="ml-2 text-xs text-gray-500">
-                  ID: {rec.product_id}
-                </span>
+                {rule && (
+                  <span className="ml-2 text-xs px-1.5 py-0.5 bg-purple-100 text-purple-700 rounded">
+                    {getRuleLabel(rule)}
+                  </span>
+                )}
               </div>
               <span
                 className={`px-2 py-0.5 text-xs rounded ${
@@ -116,7 +122,7 @@ export default function RecommendationPanel({ conversationPk }: RecommendationPa
               </span>
             </div>
             {rec.reason && (
-              <p className="text-gray-600 mb-2">推荐理由: {rec.reason}</p>
+              <p className="text-gray-600 mb-2">{rec.reason}</p>
             )}
             {rec.suggested_copy && (
               <div className="bg-gray-50 p-2 rounded mb-2">
@@ -143,7 +149,8 @@ export default function RecommendationPanel({ conversationPk }: RecommendationPa
               </div>
             )}
           </div>
-        ))}
+          );
+        })}
       </div>
     </div>
   );

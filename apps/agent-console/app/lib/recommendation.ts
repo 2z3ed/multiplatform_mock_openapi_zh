@@ -63,3 +63,31 @@ const statusLabels: Record<string, string> = {
 export function getStatusLabel(status: string): string {
   return statusLabels[status] || status;
 }
+
+export interface AutoEvaluateRecommendationResponse {
+  created_recommendations: Recommendation[];
+  skipped: number;
+}
+
+export async function autoEvaluateRecommendation(
+  conversationId: string,
+  customerId: number,
+): Promise<AutoEvaluateRecommendationResponse> {
+  return fetchAPI<AutoEvaluateRecommendationResponse>(`/api/recommendations/auto-evaluate`, {
+    method: "POST",
+    body: JSON.stringify({
+      conversation_id: conversationId,
+      customer_id: customerId,
+    }),
+  });
+}
+
+const ruleLabels: Record<string, string> = {
+  "inventory_shortage": "库存不足",
+  "shipment_pending_timeout": "待发货超时",
+  "after_sale_processing_timeout": "售后处理超时",
+};
+
+export function getRuleLabel(rule: string): string {
+  return ruleLabels[rule] || rule;
+}

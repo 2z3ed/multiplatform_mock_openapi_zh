@@ -87,6 +87,8 @@ const taskTypeLabels: Record<string, string> = {
   "unpaid": "待付款",
   "shipment_exception": "物流异常",
   "after_sale_care": "售后跟进",
+  "shipment_pending_timeout": "待发货超时",
+  "after_sale_processing_timeout": "售后处理超时",
   manual: "手动创建",
 };
 
@@ -102,4 +104,22 @@ export function getTaskTypeLabel(taskType: string): string {
 
 export function getStatusLabel(status: string): string {
   return statusLabels[status] || status;
+}
+
+export interface AutoEvaluateResponse {
+  created_tasks: FollowUpTask[];
+  skipped: number;
+}
+
+export async function autoEvaluateFollowup(
+  conversationId: string,
+  customerId: number,
+): Promise<AutoEvaluateResponse> {
+  return fetchAPI<AutoEvaluateResponse>(`/api/follow-up/auto-evaluate`, {
+    method: "POST",
+    body: JSON.stringify({
+      conversation_id: conversationId,
+      customer_id: customerId,
+    }),
+  });
 }

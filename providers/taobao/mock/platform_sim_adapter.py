@@ -18,8 +18,29 @@ def _extract_tb_trade(order_data: dict) -> dict:
 
 
 def _extract_tb_items(trade: dict, order_data: dict) -> list:
-    """Extract items from trade.orders.order[] or flat products/items."""
-    # Nested: trade.orders.order[]
+    """Extract items from top-level orders.order[] (Odoo facts) or trade.orders.order[] (fixture)."""
+    # Prefer top-level orders.order[] — this is where the profile transformer
+    # puts real Odoo facts items. trade.orders.order[] may contain fixture template data.
+    top_orders = order_data.get("orders", {})
+    if isinstance(top_orders, dict):
+        top_list = top_orders.get("order", [])
+    elif isinstance(top_orders, list):
+        top_list = top_orders
+    else:
+        top_list = []
+
+    if top_list:
+        items = []
+        for item in top_list:
+            items.append({
+                "product_id": str(item.get("oid", item.get("sku_id", ""))),
+                "name": item.get("title", item.get("sku_name", "")),
+                "num": item.get("num", item.get("quantity", 0)),
+                "price": float(item.get("price", 0)),
+            })
+        return items
+
+    # Fallback: trade.orders.order[] (fixture template)
     orders_obj = trade.get("orders", {})
     if isinstance(orders_obj, dict):
         order_list = orders_obj.get("order", [])
@@ -57,7 +78,16 @@ def adapt_platform_sim_order(order_data: dict) -> dict:
         return {}
 
     trade = _extract_tb_trade(order_data)
-    items = _extract_tb_items(trade, order_data)
+    # Build items in mapper-expected format
+    items = []
+    for item in _extract_tb_items(trade, order_data):
+        items.append({
+            "skuId": item.get("product_id", ""),
+            "skuName": item.get("name", ""),
+            "quantity": item.get("num", 0),
+            "price": item.get("price", 0),
+            "subTotal": item.get("price", 0) * item.get("num", 0),
+        })
 
     # Receiver from trade.* fields (nested) or receiver.* (flat)
     receiver_name = trade.get("receiver_name", "")
@@ -236,4 +266,24 @@ def adapt_platform_sim_refund(refund_data: dict, order_id: str) -> dict:
         "reason": refund_data.get("reason", ""),
         "reasonDetail": refund_data.get("reason", ""),
         "raw_json": refund_data,
+    }
+
+
+def adapt_platform_sim_inventory(inventory_data: list, order_id: str) -> dict:
+    if not inventory_data:
+        return {"orderId": order_id, "items": []}
+
+    items = []
+    for item in inventory_data:
+        items.append({
+            "skuId": item.get("sku_id", ""),
+            "productName": item.get("product_name", ""),
+            "quantity": item.get("quantity", 0),
+            "status": item.get("status", ""),
+        })
+
+    return {
+        "orderId": order_id,
+        "items": items,
+        "raw_json": inventory_data,
     }
