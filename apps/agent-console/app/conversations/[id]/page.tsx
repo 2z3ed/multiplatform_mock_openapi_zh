@@ -14,6 +14,8 @@ import RecommendationPanel from "./components/RecommendationPanel";
 import RiskFlagPanel from "./components/RiskFlagPanel";
 import CustomerProfilePanel from "./components/CustomerProfilePanel";
 import QualityInspectionPanel from "./components/QualityInspectionPanel";
+import PageLoading from "./components/PageLoading";
+import PageError from "./components/PageError";
 import { useConversationFlow } from "./hooks/useConversationFlow";
 
 export default function ConversationDetailPage() {
@@ -28,14 +30,20 @@ export default function ConversationDetailPage() {
     replyText,
     setReplyText,
     loading,
+    fetchError,
+    isSending,
     waitingForReply,
+    hasTimedOut,
+    newMessageId,
     handleSend,
     handleApplySuggestion,
     handleGenerateSuggestion,
+    retry,
   } = useConversationFlow(convId);
 
-  if (loading) return <div className="p-8 text-center">加载中...</div>;
-  if (!conversation) return <div className="p-8 text-center">会话不存在</div>;
+  if (loading) return <PageLoading />;
+  if (fetchError) return <PageError error={fetchError} onRetry={retry} />;
+  if (!conversation) return <PageError error={{ message: "会话不存在" }} onRetry={retry} />;
 
   const firstOrder = context?.orders?.[0] || null;
   const orderData = firstOrder?.order || null;
@@ -49,8 +57,8 @@ export default function ConversationDetailPage() {
       <ConversationHeader conversation={conversation} />
       <div className="flex-1 flex overflow-hidden">
         <div className="flex-1 flex flex-col">
-          <MessageStream messages={messages} waiting={waitingForReply} />
-          <ReplyComposer onSend={handleSend} initialText={replyText} />
+          <MessageStream messages={messages} waiting={waitingForReply} hasTimedOut={hasTimedOut} newMessageId={newMessageId} />
+          <ReplyComposer onSend={handleSend} initialText={replyText} isSending={isSending} />
         </div>
         <div className="w-80 border-l bg-gray-100 p-4 space-y-4 overflow-y-auto">
           <OrderPanel order={orderData} platform={platform} />

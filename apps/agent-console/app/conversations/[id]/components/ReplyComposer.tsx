@@ -3,9 +3,11 @@ import { useState, useEffect } from "react";
 export default function ReplyComposer({
   onSend,
   initialText,
+  isSending,
 }: {
   onSend: (text: string) => void;
   initialText?: string;
+  isSending?: boolean;
 }) {
   const [text, setText] = useState(initialText || "");
 
@@ -24,14 +26,19 @@ export default function ReplyComposer({
       <div className="mt-2 flex justify-end">
         <button
           onClick={() => {
-            if (text.trim()) {
+            if (text.trim() && !isSending) {
               onSend(text);
               setText("");
             }
           }}
-          className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700"
+          disabled={isSending}
+          className={`px-4 py-2 rounded-md text-sm ${
+            isSending
+              ? "bg-gray-300 text-gray-500 cursor-not-allowed"
+              : "bg-blue-600 text-white hover:bg-blue-700"
+          }`}
         >
-          发送
+          {isSending ? "发送中…" : "发送"}
         </button>
       </div>
     </div>

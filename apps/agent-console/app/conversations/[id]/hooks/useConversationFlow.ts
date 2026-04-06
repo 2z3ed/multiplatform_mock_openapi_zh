@@ -18,10 +18,15 @@ interface UseConversationFlowResult {
   replyText: string;
   setReplyText: (t: string) => void;
   loading: boolean;
+  fetchError: { message: string } | null;
+  isSending: boolean;
   waitingForReply: boolean;
+  hasTimedOut: boolean;
+  newMessageId: string | null;
   handleSend: (text: string) => Promise<void>;
   handleApplySuggestion: (text: string) => void;
   handleGenerateSuggestion: () => Promise<void>;
+  retry: () => void;
 }
 
 export function useConversationFlow(convId: string): UseConversationFlowResult {
@@ -32,13 +37,18 @@ export function useConversationFlow(convId: string): UseConversationFlowResult {
   const [suggestionStatus, setSuggestionStatus] = useState<SuggestionStatus>({ type: "idle" });
   const [replyText, setReplyText] = useState("");
   const [loading, setLoading] = useState(true);
+  const [fetchError, setFetchError] = useState<{ message: string } | null>(null);
+  const [isSending, setIsSending] = useState(false);
   const [waitingForReply, setWaitingForReply] = useState(false);
+  const [hasTimedOut, setHasTimedOut] = useState(false);
+  const [newMessageId, setNewMessageId] = useState<string | null>(null);
   const evaluatedRef = useRef(false);
   const pollingRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const pollAttemptRef = useRef(0);
   const lastInboundCountRef = useRef(0);
   const isGeneratingRef = useRef(false);
   const abortControllerRef = useRef<AbortController | null>(null);
+  const highlightTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const fetchMessages = useCallback(async (): Promise<number> => {
     try {
@@ -46,14 +56,21 @@ export function useConversationFlow(convId: string): UseConversationFlowResult {
       if (res.ok) {
         const data = await res.json();
         const items = data.items || [];
-        setMessages(items);
-        const inboundCount = items.filter((m: Message) => m.direction === "inbound").length;
+        const inboundItems = items.filter((m: Message) => m.direction === "inbound");
+        const inboundCount = inboundItems.length;
         if (inboundCount > lastInboundCountRef.current) {
+          const newMsg = inboundItems[inboundItems.length - 1];
+          setNewMessageId(newMsg.id);
+          if (highlightTimerRef.current) clearTimeout(highlightTimerRef.current);
+          highlightTimerRef.current = setTimeout(() => setNewMessageId(null), 3000);
+
           stopPolling();
           setWaitingForReply(false);
+          setHasTimedOut(false);
           await refreshSuggestion(items);
         }
         lastInboundCountRef.current = inboundCount;
+        setMessages(items);
         return inboundCount;
       }
     } catch (error) {
@@ -75,11 +92,13 @@ export function useConversationFlow(convId: string): UseConversationFlowResult {
     lastInboundCountRef.current = messages.filter((m) => m.direction === "inbound").length;
     pollAttemptRef.current = 0;
     setWaitingForReply(true);
+    setHasTimedOut(false);
     pollingRef.current = setInterval(() => {
       pollAttemptRef.current += 1;
       if (pollAttemptRef.current >= POLL_MAX_ATTEMPTS) {
         stopPolling();
         setWaitingForReply(false);
+        setHasTimedOut(true);
         return;
       }
       fetchMessages();
@@ -173,35 +192,55 @@ export function useConversationFlow(convId: string): UseConversationFlowResult {
     await generateSuggestion("auto", currentMessages);
   }, [generateSuggestion]);
 
-  useEffect(() => {
-    if (evaluatedRef.current) return;
-    evaluatedRef.current = true;
+  const loadInitialData = useCallback(async () => {
+    setLoading(true);
+    setFetchError(null);
+    evaluatedRef.current = false;
+    try {
+      const [convRes, msgRes, ctxRes] = await Promise.all([
+        fetch(`/api/conversations/${convId}`),
+        fetch(`/api/conversations/${convId}/messages`),
+        fetch(`/api/conversations/${convId}/context`),
+      ]);
 
-    async function fetchData() {
-      try {
-        const [convRes, msgRes, ctxRes] = await Promise.all([
-          fetch(`/api/conversations/${convId}`),
-          fetch(`/api/conversations/${convId}/messages`),
-          fetch(`/api/conversations/${convId}/context`),
-        ]);
-        const convData = await convRes.json();
-        const msgData = await msgRes.json();
-        setConversation(convData);
-        setMessages(msgData.items || []);
-        lastInboundCountRef.current = (msgData.items || []).filter((m: Message) => m.direction === "inbound").length;
-        if (ctxRes.ok) {
-          setContext(await ctxRes.json());
+      if (!convRes.ok) {
+        if (convRes.status === 404) {
+          setFetchError({ message: "会话不存在" });
         } else {
-          setContext(null);
+          setFetchError({ message: `加载失败 (${convRes.status})，请稍后重试` });
         }
-      } catch (error) {
-        console.error("Failed to fetch conversation data:", error);
-      } finally {
-        setLoading(false);
+        return;
       }
+
+      if (!msgRes.ok) {
+        setFetchError({ message: `加载消息失败 (${msgRes.status})，请稍后重试` });
+        return;
+      }
+
+      const convData = await convRes.json();
+      const msgData = await msgRes.json();
+      setConversation(convData);
+      setMessages(msgData.items || []);
+      lastInboundCountRef.current = (msgData.items || []).filter((m: Message) => m.direction === "inbound").length;
+      if (ctxRes.ok) {
+        setContext(await ctxRes.json());
+      } else {
+        setContext(null);
+      }
+    } catch (error) {
+      setFetchError({ message: error instanceof Error ? error.message : "网络错误，请稍后重试" });
+    } finally {
+      setLoading(false);
     }
-    fetchData();
   }, [convId]);
+
+  useEffect(() => {
+    loadInitialData();
+  }, [loadInitialData]);
+
+  const retry = useCallback(() => {
+    loadInitialData();
+  }, [loadInitialData]);
 
   useEffect(() => {
     if (!context || !conversation) return;
@@ -227,10 +266,15 @@ export function useConversationFlow(convId: string): UseConversationFlowResult {
       if (abortControllerRef.current) {
         abortControllerRef.current.abort();
       }
+      if (highlightTimerRef.current) {
+        clearTimeout(highlightTimerRef.current);
+      }
     };
   }, [stopPolling]);
 
   const handleSend = async (text: string) => {
+    setIsSending(true);
+    setHasTimedOut(false);
     try {
       const response = await fetch(`/api/messages`, {
         method: "POST",
@@ -255,6 +299,8 @@ export function useConversationFlow(convId: string): UseConversationFlowResult {
       }
     } catch (error) {
       console.error("Failed to send message:", error);
+    } finally {
+      setIsSending(false);
     }
   };
 
@@ -275,9 +321,14 @@ export function useConversationFlow(convId: string): UseConversationFlowResult {
     replyText,
     setReplyText,
     loading,
+    fetchError,
+    isSending,
     waitingForReply,
+    hasTimedOut,
+    newMessageId,
     handleSend,
     handleApplySuggestion,
     handleGenerateSuggestion,
+    retry,
   };
 }
