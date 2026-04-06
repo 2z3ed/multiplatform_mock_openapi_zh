@@ -24,6 +24,7 @@ export default function ConversationDetailPage() {
     messages,
     context,
     suggestion,
+    suggestionStatus,
     replyText,
     setReplyText,
     loading,
@@ -58,6 +59,7 @@ export default function ConversationDetailPage() {
           <InventoryPanel inventory={inventoryData} platform={platform} />
           <SuggestionPanel
             suggestion={suggestion}
+            status={suggestionStatus}
             onApply={handleApplySuggestion}
             onGenerate={handleGenerateSuggestion}
           />

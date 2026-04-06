@@ -122,4 +122,14 @@ export interface AISuggestion {
   risk_level: string;
   needs_human_review: boolean;
   source_summary?: string | null;
+  degraded?: boolean;
+  fallback_reason?: string | null;
 }
+
+export type SuggestionStatus =
+  | { type: "idle" }
+  | { type: "loading" }
+  | { type: "success" }
+  | { type: "empty" }
+  | { type: "error"; message: string }
+  | { type: "degraded"; reason?: string };

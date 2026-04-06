@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef, useCallback } from "react";
-import type { Message, Conversation, ConversationContext, AISuggestion } from "../types";
+import type { Message, Conversation, ConversationContext, AISuggestion, SuggestionStatus } from "../types";
 import { autoEvaluateFollowup } from "../../../lib/followup";
 import { autoEvaluateRecommendation } from "../../../lib/recommendation";
 import { autoEvaluateRisk } from "../../../lib/riskFlag";
@@ -7,12 +7,14 @@ import { autoEvaluateQuality } from "../../../lib/quality";
 
 const POLL_INTERVAL_MS = 2000;
 const POLL_MAX_ATTEMPTS = 5;
+const SUGGESTION_TIMEOUT_MS = 15000;
 
 interface UseConversationFlowResult {
   conversation: Conversation | null;
   messages: Message[];
   context: ConversationContext | null;
   suggestion: AISuggestion | null;
+  suggestionStatus: SuggestionStatus;
   replyText: string;
   setReplyText: (t: string) => void;
   loading: boolean;
@@ -27,6 +29,7 @@ export function useConversationFlow(convId: string): UseConversationFlowResult {
   const [messages, setMessages] = useState<Message[]>([]);
   const [context, setContext] = useState<ConversationContext | null>(null);
   const [suggestion, setSuggestion] = useState<AISuggestion | null>(null);
+  const [suggestionStatus, setSuggestionStatus] = useState<SuggestionStatus>({ type: "idle" });
   const [replyText, setReplyText] = useState("");
   const [loading, setLoading] = useState(true);
   const [waitingForReply, setWaitingForReply] = useState(false);
@@ -34,6 +37,8 @@ export function useConversationFlow(convId: string): UseConversationFlowResult {
   const pollingRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const pollAttemptRef = useRef(0);
   const lastInboundCountRef = useRef(0);
+  const isGeneratingRef = useRef(false);
+  const abortControllerRef = useRef<AbortController | null>(null);
 
   const fetchMessages = useCallback(async (): Promise<number> => {
     try {
@@ -81,10 +86,29 @@ export function useConversationFlow(convId: string): UseConversationFlowResult {
     }, POLL_INTERVAL_MS);
   }, [messages, fetchMessages, stopPolling]);
 
-  const refreshSuggestion = async (currentMessages: Message[]) => {
+  const generateSuggestion = useCallback(async (trigger: "manual" | "auto", currentMessages: Message[]) => {
+    if (isGeneratingRef.current) return;
+    isGeneratingRef.current = true;
+
+    if (abortControllerRef.current) {
+      abortControllerRef.current.abort();
+    }
+    abortControllerRef.current = new AbortController();
+
+    setSuggestionStatus({ type: "loading" });
+
     try {
       const lastInbound = currentMessages.filter((m) => m.direction === "inbound").pop();
-      if (!lastInbound) return;
+      if (!lastInbound) {
+        setSuggestionStatus({ type: "empty" });
+        isGeneratingRef.current = false;
+        return;
+      }
+
+      const timeoutId = setTimeout(() => {
+        abortControllerRef.current?.abort();
+      }, SUGGESTION_TIMEOUT_MS);
+
       const res = await fetch(`/api/ai/suggest-reply`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -93,15 +117,61 @@ export function useConversationFlow(convId: string): UseConversationFlowResult {
           message: lastInbound.content,
           platform: conversation?.platform || "jd",
         }),
+        signal: abortControllerRef.current.signal,
       });
-      if (res.ok) {
-        const data = await res.json();
-        setSuggestion(data);
+
+      clearTimeout(timeoutId);
+
+      if (!res.ok) {
+        if (trigger === "auto" && suggestion) {
+          setSuggestionStatus({ type: "error", message: "自动刷新失败，已保留上一版建议" });
+        } else {
+          setSuggestionStatus({ type: "error", message: `请求失败 (${res.status})` });
+        }
+        isGeneratingRef.current = false;
+        return;
       }
-    } catch (error) {
-      console.error("Failed to refresh suggestion:", error);
+
+      const data = await res.json();
+
+      if (!data || !data.suggested_reply) {
+        if (trigger === "auto" && suggestion) {
+          setSuggestionStatus({ type: "error", message: "自动刷新未返回新建议，已保留上一版" });
+        } else {
+          setSuggestionStatus({ type: "empty" });
+          setSuggestion(null);
+        }
+        isGeneratingRef.current = false;
+        return;
+      }
+
+      if (data.degraded === true) {
+        setSuggestionStatus({ type: "degraded", reason: data.fallback_reason || undefined });
+        setSuggestion(data);
+        isGeneratingRef.current = false;
+        return;
+      }
+
+      setSuggestionStatus({ type: "success" });
+      setSuggestion(data);
+    } catch (error: unknown) {
+      const isAbort = error instanceof DOMException && error.name === "AbortError";
+      if (isAbort) return;
+
+      if (trigger === "auto" && suggestion) {
+        setSuggestionStatus({ type: "error", message: "自动刷新失败，已保留上一版建议" });
+      } else {
+        setSuggestionStatus({ type: "error", message: error instanceof Error ? error.message : "生成建议时发生错误" });
+        setSuggestion(null);
+      }
+    } finally {
+      isGeneratingRef.current = false;
     }
-  };
+  }, [convId, conversation?.platform, suggestion]);
+
+  const refreshSuggestion = useCallback(async (currentMessages: Message[]) => {
+    await generateSuggestion("auto", currentMessages);
+  }, [generateSuggestion]);
 
   useEffect(() => {
     if (evaluatedRef.current) return;
@@ -152,7 +222,12 @@ export function useConversationFlow(convId: string): UseConversationFlowResult {
   }, [context, conversation, convId]);
 
   useEffect(() => {
-    return () => { stopPolling(); };
+    return () => {
+      stopPolling();
+      if (abortControllerRef.current) {
+        abortControllerRef.current.abort();
+      }
+    };
   }, [stopPolling]);
 
   const handleSend = async (text: string) => {
@@ -188,24 +263,7 @@ export function useConversationFlow(convId: string): UseConversationFlowResult {
   };
 
   const handleGenerateSuggestion = async () => {
-    try {
-      const lastInbound = messages.filter((m) => m.direction === "inbound").pop();
-      if (!lastInbound) return;
-      const res = await fetch(`/api/ai/suggest-reply`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          conversation_id: convId,
-          message: lastInbound.content,
-          platform: conversation?.platform || "jd",
-        }),
-      });
-      if (res.ok) {
-        setSuggestion(await res.json());
-      }
-    } catch (error) {
-      console.error("Failed to generate suggestion:", error);
-    }
+    await generateSuggestion("manual", messages);
   };
 
   return {
@@ -213,6 +271,7 @@ export function useConversationFlow(convId: string): UseConversationFlowResult {
     messages,
     context,
     suggestion,
+    suggestionStatus,
     replyText,
     setReplyText,
     loading,
