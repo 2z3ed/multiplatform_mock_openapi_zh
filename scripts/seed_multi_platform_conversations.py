@@ -72,10 +72,11 @@ def _safe_json(obj):
 JD_MESSAGES = [
     {"sender_type": "customer", "sender_id": "jd_cust_mp_001", "content": "你好，我想问一下订单 304857291638 什么时候发货？"},
     {"sender_type": "agent", "sender_id": "agent_001", "content": "您好，李明先生。我帮您查一下，请稍等。"},
-    {"sender_type": "agent", "sender_id": "agent_001", "content": "您的订单已发货，快递公司是京东物流，单号 JD1234567890，预计 2-3 天送达。"},
-    {"sender_type": "customer", "sender_id": "jd_cust_mp_001", "content": "好的，大概什么时候能到？我在深圳南山区。"},
+    {"sender_type": "agent", "sender_id": "agent_001", "content": "您的订单已付款，目前待发货，预计今天内可以发出。"},
+    {"sender_type": "customer", "sender_id": "jd_cust_mp_001", "content": "好的，那大概什么时候能到呢？"},
     {"sender_type": "agent", "sender_id": "agent_001", "content": "从北京仓发出到深圳，正常情况下明天下午就能到。您收到后有任何问题随时联系我们。"},
-    {"sender_type": "customer", "sender_id": "jd_cust_mp_001", "content": "对了，这个商品如果质量问题可以退换吗？"},
+    {"sender_type": "customer", "sender_id": "jd_cust_mp_001", "content": "好的，谢谢"},
+    {"sender_type": "agent", "sender_id": "agent_001", "content": "不客气，祝您生活愉快！有需要随时找我。"},
 ]
 
 SAMPLES = [
@@ -87,7 +88,7 @@ SAMPLES = [
         "status": "open",
         "order_status": "paid",
         "order_amount": "9999.00",
-        "external_order_id": "304857291638",  # jd_user_001, shipped order
+        "external_order_id": "304857291638",  # jd_user_001, paid order
         "message_content": "请问我的订单什么时候发货？",
         "extra_messages": JD_MESSAGES,
     },
