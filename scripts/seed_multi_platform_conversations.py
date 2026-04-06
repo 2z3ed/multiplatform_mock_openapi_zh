@@ -69,6 +69,15 @@ def _safe_json(obj):
 # after_sale_case records.  If you want a refund-themed sample, add a
 # corresponding after_sale_case row.
 
+JD_MESSAGES = [
+    {"sender_type": "customer", "sender_id": "jd_cust_mp_001", "content": "你好，我想问一下订单 304857291638 什么时候发货？"},
+    {"sender_type": "agent", "sender_id": "agent_001", "content": "您好，李明先生。我帮您查一下，请稍等。"},
+    {"sender_type": "agent", "sender_id": "agent_001", "content": "您的订单已发货，快递公司是京东物流，单号 JD1234567890，预计 2-3 天送达。"},
+    {"sender_type": "customer", "sender_id": "jd_cust_mp_001", "content": "好的，大概什么时候能到？我在深圳南山区。"},
+    {"sender_type": "agent", "sender_id": "agent_001", "content": "从北京仓发出到深圳，正常情况下明天下午就能到。您收到后有任何问题随时联系我们。"},
+    {"sender_type": "customer", "sender_id": "jd_cust_mp_001", "content": "对了，这个商品如果质量问题可以退换吗？"},
+]
+
 SAMPLES = [
     {
         "platform": "jd",
@@ -80,6 +89,7 @@ SAMPLES = [
         "order_amount": "9999.00",
         "external_order_id": "304857291638",  # jd_user_001, shipped order
         "message_content": "请问我的订单什么时候发货？",
+        "extra_messages": JD_MESSAGES,
     },
     {
         "platform": "taobao",
@@ -270,7 +280,7 @@ def seed_platform(engine, sample: dict) -> None:
             })
             print(f"  ConversationOrderLink created")
 
-        # 6. Message
+        # 6. Message (first customer message)
         existing_msg = conn.execute(text(
             "SELECT id FROM message WHERE conversation_id = :cid AND sender_type = 'customer'"
         ), {"cid": conv_id}).fetchone()
@@ -291,6 +301,33 @@ def seed_platform(engine, sample: dict) -> None:
                 "content": sample["message_content"],
             })
             print(f"  Message created")
+
+        # 7. Extra messages (for JD canonical conversation)
+        extra_messages = sample.get("extra_messages", [])
+        if extra_messages:
+            for i, msg in enumerate(extra_messages):
+                existing_extra = conn.execute(text(
+                    "SELECT id FROM message WHERE conversation_id = :cid AND content = :content AND sender_type = :st"
+                ), {"cid": conv_id, "content": msg["content"], "st": msg["sender_type"]}).fetchone()
+                if existing_extra:
+                    print(f"  Extra message {i+1} already exists, skipping")
+                else:
+                    offset_minutes = (i + 1) * 5
+                    conn.execute(text("""
+                        INSERT INTO message (
+                            conversation_id, sender_type, sender_id, content,
+                            sent_at, created_at, updated_at
+                        ) VALUES (
+                            :conv_id, :sender_type, :sender_id, :content,
+                            NOW() - INTERVAL '%s minutes', NOW(), NOW()
+                        )
+                    """ % offset_minutes), {
+                        "conv_id": conv_id,
+                        "sender_type": msg["sender_type"],
+                        "sender_id": msg["sender_id"],
+                        "content": msg["content"],
+                    })
+                    print(f"  Extra message {i+1} created ({msg['sender_type']}: {msg['content'][:30]}...)")
 
 
 def ensure_tables(engine) -> None:
