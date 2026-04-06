@@ -47,19 +47,46 @@ class MockChatModel:
 
 
 class RealChatModel:
+    LLM_TIMEOUT = 10.0
+
     def __init__(self, model_name: str, temperature: float, api_key: str, base_url: Optional[str] = None):
         from openai import OpenAI
-        self.client = OpenAI(api_key=api_key, base_url=base_url)
+        self.client = OpenAI(api_key=api_key, base_url=base_url, max_retries=0, timeout=10.0)
         self.model_name = model_name
         self.temperature = temperature
+        logger.info(f"RealChatModel initialized - model: {model_name}, timeout: {self.LLM_TIMEOUT}s")
 
     def invoke(self, messages: list[dict]) -> str:
-        response = self.client.chat.completions.create(
-            model=self.model_name,
-            messages=messages,
-            temperature=self.temperature,
-        )
-        return response.choices[0].message.content
+        import signal
+
+        class TimeoutError(Exception):
+            pass
+
+        def _handler(signum, frame):
+            raise TimeoutError(f"LLM call timed out after {self.LLM_TIMEOUT}s")
+
+        old_handler = signal.signal(signal.SIGALRM, _handler)
+        signal.alarm(int(self.LLM_TIMEOUT))
+
+        try:
+            response = self.client.chat.completions.create(
+                model=self.model_name,
+                messages=messages,
+                temperature=self.temperature,
+            )
+            signal.alarm(0)
+            signal.signal(signal.SIGALRM, old_handler)
+            return response.choices[0].message.content
+        except TimeoutError as e:
+            logger.warning(f"LLM call timed out - model: {self.model_name}, timeout: {self.LLM_TIMEOUT}s")
+            signal.alarm(0)
+            signal.signal(signal.SIGALRM, old_handler)
+            raise
+        except Exception as e:
+            logger.warning(f"LLM call failed - model: {self.model_name}, error: {type(e).__name__}: {e}")
+            signal.alarm(0)
+            signal.signal(signal.SIGALRM, old_handler)
+            raise
 
     def with_structured_output(self, schema: type):
         raise NotImplementedError("RealChatModel with_structured_output not implemented")
