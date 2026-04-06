@@ -23,30 +23,87 @@ class SuggestReplyChain:
 
     def _fallback_reply(self, message: str, intent: str, context: Optional[dict] = None) -> str:
         """Rule-based fallback reply when LLM is unavailable."""
-        context_info = ""
-        if context and context.get("formatted"):
-            context_info = context["formatted"]
-
-        if intent == "order_query":
-            if context_info:
-                return f"您好，已为您查询到订单信息。{context_info[:100]}。如有其他问题请随时联系我们。"
-            return "您好，已为您查询订单，请提供更多信息以便我们为您核实。"
-        elif intent == "shipment_query":
-            if context_info:
-                return f"您好，已为您查询物流信息。{context_info[:100]}。请耐心等待，如有异常我们会及时通知。"
-            return "您好，当前暂无物流信息，我们会尽快为您核实物流状态。"
+        
+        if intent == "shipment_query":
+            if context and context.get("resolved"):
+                status = context.get("shipment_status", "")
+                tracking = context.get("tracking_no", "")
+                carrier = context.get("carrier", "")
+                if status:
+                    msg = f"您好，您的包裹已在运输中，状态为「{status}」。"
+                    if tracking and carrier:
+                        msg += f"您可通过{carrier}查询运单号 {tracking}。"
+                    elif tracking:
+                        msg += f"运单号 {tracking}。"
+                    msg += "如有异常我们会及时通知您。"
+                    return msg
+                return "您好，我已帮您查询物流信息，请稍等片刻，有消息我会第一时间通知您。"
+            return "您好，我已经帮您查询物流信息，请稍等，我这就为您查看具体进度。"
+        
+        elif intent == "order_query":
+            if context:
+                status = context.get("status_name", context.get("status", ""))
+                order_id = context.get("order_id", context.get("internal_order_id", ""))
+                if status:
+                    msg = f"您好，您的订单当前状态为「{status}」。"
+                    if "已发货" in status or "运输" in status:
+                        msg += "包裹已在路上，您可以在物流信息中查看具体进度。"
+                    elif "已付款" in status or "待发货" in status:
+                        msg += "订单已付款，我们会尽快为您发货。"
+                    elif "已完成" in status:
+                        msg += "感谢您的购买，如有售后问题可随时联系我们。"
+                    else:
+                        msg += "有最新进展我会及时通知您。"
+                    return msg
+                return "您好，我已收到您的查询，正在为您核实订单信息。"
+            return "您好，我已经收到您的订单查询，正在为您核实具体情况。"
+        
         elif intent == "after_sale_query":
-            if context_info:
-                return f"您好，已为您查询售后信息。{context_info[:100]}。我们会尽快处理，请耐心等待。"
-            return "您好，当前暂无可确认的售后信息，请提供售后单号以便我们核实。"
+            if context and context.get("resolved"):
+                status = context.get("after_sale_status", "")
+                atype = context.get("after_sale_type", "")
+                approve = context.get("approve_amount", "")
+                if status:
+                    msg = f"您好，您的售后申请状态为「{status}」。"
+                    if atype:
+                        msg += f"类型：{atype}。"
+                    if approve:
+                        msg += f"审核金额：¥{approve}。"
+                    msg += "我们会尽快为您处理，有进展我会及时通知您。"
+                    return msg
+                return "您好，我已经收到您的售后查询，正在为您核实处理进度。"
+            after_sales = context.get("after_sales", []) if context else []
+            if after_sales:
+                return "您好，我已经收到您的售后查询，正在为您核实具体情况，请您稍等。"
+            return "您好，我已收到您的售后咨询，正在为您核实处理进度，有消息我会第一时间通知您。"
+        
         elif intent == "inventory_query":
-            if context_info:
-                return f"您好，已为您查询库存。{context_info[:100]}。如需下单请尽快操作。"
-            return "您好，当前暂无可确认的库存信息，请提供商品信息以便我们核实。"
+            if context and context.get("resolved"):
+                items = context.get("items", [])
+                if items:
+                    in_stock = [i for i in items if i.get("stock_state") == "有货"]
+                    out_of_stock = [i for i in items if i.get("stock_state") != "有货"]
+                    msg = "您好，我来帮您查询一下商品库存情况。"
+                    if in_stock:
+                        names = ", ".join([i.get("product_name", i.get("sku_id", "")) for i in in_stock[:2]])
+                        msg += f"「{names}」目前有货。"
+                    if out_of_stock:
+                        names = ", ".join([i.get("product_name", i.get("sku_id", "")) for i in out_of_stock[:2]])
+                        msg += f"「{names}」目前暂无货。"
+                    msg += "如需下单请尽快操作，有货后我会通知您。"
+                    return msg
+                return "您好，我已经帮您查询库存，请稍等，有消息我会通知您。"
+            return "您好，我已经收到您的库存查询，正在为您核实具体情况。"
+        
         elif intent == "faq":
-            return "您好，感谢您的咨询，我们正在为您核实相关信息。"
+            keywords = ["什么时候", "多久", "几天", "发货", "物流", "到了", "到哪"]
+            has_shipping_keyword = any(kw in message for kw in keywords)
+            if has_shipping_keyword:
+                return "您好，我帮您查一下具体信息，请稍等，有消息我会第一时间通知您。"
+            return "您好，感谢您的咨询，我已经收到您的问题，正在为您核实处理中。"
+        
         else:
-            return "您好，感谢您的消息，我们正在为您处理，请稍等。"
+            return "您好，我已经收到您的问题，正在为您处理，有消息我会第一时间通知您。"
 
     def generate(
         self,
