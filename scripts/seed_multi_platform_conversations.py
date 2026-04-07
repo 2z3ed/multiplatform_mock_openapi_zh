@@ -80,10 +80,13 @@ JD_MESSAGES = [
 ]
 
 TB_MESSAGES = [
-    {"sender_type": "customer", "sender_id": "tb_cust_mp_001", "content": "你好，我想查一下订单 4728561930472815 的物流到哪了？"},
-    {"sender_type": "agent", "sender_id": "agent_001", "content": "您好，王芳女士。我帮您查一下物流信息，请稍等。"},
-    {"sender_type": "agent", "sender_id": "agent_001", "content": "您的订单已签收，物流显示昨天下午 3 点已由菜鸟驿站代收。"},
-    {"sender_type": "customer", "sender_id": "tb_cust_mp_001", "content": "好的，我去驿站拿一下，谢谢"},
+    {"sender_type": "customer", "sender_id": "tb_cust_mp_001", "content": "你好，我想申请一下这个订单的退货退款"},
+    {"sender_type": "agent", "sender_id": "agent_001", "content": "您好，王芳女士。请问退货原因是什么呢？"},
+    {"sender_type": "customer", "sender_id": "tb_cust_mp_001", "content": "商品与描述不符，收到的颜色和我下单的不一样"},
+    {"sender_type": "agent", "sender_id": "agent_001", "content": "非常抱歉给您带来不好的体验。您的订单已签收，符合 7 天无理由退货条件，我帮您提交退货申请。"},
+    {"sender_type": "customer", "sender_id": "tb_cust_mp_001", "content": "好的，那退货流程大概需要多久？"},
+    {"sender_type": "agent", "sender_id": "agent_001", "content": "退货申请提交后，商家一般 24 小时内审核。审核通过后您可以预约快递上门取件，退款会在商家签收后 1-3 个工作日原路退回。"},
+    {"sender_type": "customer", "sender_id": "tb_cust_mp_001", "content": "好的，那我等审核通过"},
 ]
 
 DY_MESSAGES = [
@@ -120,13 +123,19 @@ SAMPLES = [
         "platform": "taobao",
         "customer_id": "tb_cust_mp_001",
         "display_name": "淘宝用户-王芳",
-        "subject": "查询订单物流签收",
+        "subject": "申请退货退款咨询",
         "status": "open",
         "order_status": "finished",
         "order_amount": "9999.00",
         "external_order_id": "4728561930472815",  # taobao_user_001, shipped
-        "message_content": "帮我查一下这个订单的物流到哪了",
+        "message_content": "你好，我想申请一下这个订单的退货退款",
         "extra_messages": TB_MESSAGES,
+        "after_sale": {
+            "after_sale_id": "TB_REFUND_4728561930472815",
+            "case_type": "refund",
+            "status": "processing",
+            "reason": "商品与描述不符，申请退货退款",
+        },
     },
     {
         "platform": "douyin_shop",
@@ -229,6 +238,14 @@ def _cleanup_managed_samples(engine) -> None:
         order_placeholders = ",".join(f":oid{i}" for i in range(len(order_ids))) if order_ids else "0"
         order_params = {f"oid{i}": oid for i, oid in enumerate(order_ids)} if order_ids else {}
 
+        # Resolve managed external order ids (for after_sale_case cleanup)
+        ext_order_rows = conn.execute(text(
+            f"SELECT extra_json->>'external_order_id' FROM order_core WHERE customer_id IN ({cust_placeholders})"
+        ), cust_params).fetchall()
+        ext_order_ids = [r[0] for r in ext_order_rows if r[0]]
+        ext_order_placeholders = ",".join(f":eoid{i}" for i in range(len(ext_order_ids))) if ext_order_ids else "''"
+        ext_order_params = {f"eoid{i}": oid for i, oid in enumerate(ext_order_ids)} if ext_order_ids else {}
+
         # 1. Messages via managed conversations
         if conv_ids:
             result = conn.execute(text(
@@ -252,6 +269,14 @@ def _cleanup_managed_samples(engine) -> None:
             ), order_params)
             if result.rowcount:
                 print(f"  Deleted {result.rowcount} managed order_identity_mappings")
+
+        # 3b. After-sale cases via managed external order ids
+        if ext_order_ids:
+            result = conn.execute(text(
+                f"DELETE FROM after_sale_case WHERE order_id IN ({ext_order_placeholders})"
+            ), ext_order_params)
+            if result.rowcount:
+                print(f"  Deleted {result.rowcount} managed after_sale_cases")
 
         # 4. Conversations
         if conv_ids:
@@ -459,6 +484,33 @@ def seed_platform(engine, sample: dict) -> None:
                         "content": msg["content"],
                     })
                     print(f"  Extra message {i+1} created ({msg['sender_type']}: {msg['content'][:30]}...)")
+
+        # 8. After-sale case (for taobao refund-themed sample)
+        after_sale = sample.get("after_sale")
+        if after_sale:
+            existing_as = conn.execute(text(
+                "SELECT id FROM after_sale_case WHERE platform = :p AND after_sale_id = :asid"
+            ), {"p": platform, "asid": after_sale["after_sale_id"]}).fetchone()
+            if existing_as:
+                print(f"  AfterSaleCase already exists")
+            else:
+                conn.execute(text("""
+                    INSERT INTO after_sale_case (
+                        platform, after_sale_id, order_id, case_type, status, reason,
+                        created_at, updated_at
+                    ) VALUES (
+                        :platform, :after_sale_id, :order_id, :case_type, :status, :reason,
+                        NOW(), NOW()
+                    )
+                """), {
+                    "platform": platform,
+                    "after_sale_id": after_sale["after_sale_id"],
+                    "order_id": sample["external_order_id"],
+                    "case_type": after_sale["case_type"],
+                    "status": after_sale["status"],
+                    "reason": after_sale["reason"],
+                })
+                print(f"  AfterSaleCase created ({after_sale['after_sale_id']})")
 
 
 def ensure_tables(engine) -> None:
