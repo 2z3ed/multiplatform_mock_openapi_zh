@@ -79,6 +79,30 @@ JD_MESSAGES = [
     {"sender_type": "agent", "sender_id": "agent_001", "content": "不客气，祝您生活愉快！有需要随时找我。"},
 ]
 
+TB_MESSAGES = [
+    {"sender_type": "customer", "sender_id": "tb_cust_mp_001", "content": "你好，我想查一下订单 4728561930472815 的物流到哪了？"},
+    {"sender_type": "agent", "sender_id": "agent_001", "content": "您好，王芳女士。我帮您查一下物流信息，请稍等。"},
+    {"sender_type": "agent", "sender_id": "agent_001", "content": "您的订单已签收，物流显示昨天下午 3 点已由菜鸟驿站代收。"},
+    {"sender_type": "customer", "sender_id": "tb_cust_mp_001", "content": "好的，我去驿站拿一下，谢谢"},
+]
+
+DY_MESSAGES = [
+    {"sender_type": "customer", "sender_id": "dy_cust_mp_001", "content": "你好，我前天下的单，怎么还没发货呀？"},
+    {"sender_type": "agent", "sender_id": "agent_001", "content": "您好，陈先生。抱歉让您久等了，我帮您看一下订单情况。"},
+    {"sender_type": "agent", "sender_id": "agent_001", "content": "您的订单已付款成功，目前正在仓库配货中，预计今天内可以发出。"},
+    {"sender_type": "customer", "sender_id": "dy_cust_mp_001", "content": "能帮我催一下吗，比较急用"},
+    {"sender_type": "agent", "sender_id": "agent_001", "content": "好的，我帮您备注加急处理，发出后会有物流信息更新，您注意查看。"},
+    {"sender_type": "customer", "sender_id": "dy_cust_mp_001", "content": "好的，麻烦了"},
+]
+
+WC_MESSAGES = [
+    {"sender_type": "customer", "sender_id": "wc_cust_mp_001", "content": "你好，请问这款商品有优惠吗？"},
+    {"sender_type": "agent", "sender_id": "agent_001", "content": "您好，赵先生。目前这款商品有新品首发的活动，下单立减 30 元。"},
+    {"sender_type": "customer", "sender_id": "wc_cust_mp_001", "content": "那这个颜色和黑色有什么区别吗？"},
+    {"sender_type": "agent", "sender_id": "agent_001", "content": "颜色区别主要在外观设计，功能和配置是一样的。银色款是本期主推色，库存也比较充足。"},
+    {"sender_type": "customer", "sender_id": "wc_cust_mp_001", "content": "好的，那我考虑一下，谢谢"},
+]
+
 SAMPLES = [
     {
         "platform": "jd",
@@ -95,35 +119,38 @@ SAMPLES = [
     {
         "platform": "taobao",
         "customer_id": "tb_cust_mp_001",
-        "display_name": "淘宝用户",
-        "subject": "咨询物流信息",
+        "display_name": "淘宝用户-王芳",
+        "subject": "查询订单物流签收",
         "status": "open",
         "order_status": "finished",
         "order_amount": "9999.00",
         "external_order_id": "4728561930472815",  # taobao_user_001, shipped
-        "message_content": "帮我查一下这个订单的物流",
+        "message_content": "帮我查一下这个订单的物流到哪了",
+        "extra_messages": TB_MESSAGES,
     },
     {
         "platform": "douyin_shop",
         "customer_id": "dy_cust_mp_001",
-        "display_name": "抖音用户",
-        "subject": "咨询订单状态",
+        "display_name": "抖音用户-陈浩",
+        "subject": "催促订单尽快发货",
         "status": "open",
         "order_status": "paid",
         "order_amount": "159.00",
         "external_order_id": "6847291038472910",  # douyin_user_001, paid
-        "message_content": "我的订单现在是什么状态？",
+        "message_content": "我前天下的单，怎么还没发货？",
+        "extra_messages": DY_MESSAGES,
     },
     {
         "platform": "wecom_kf",
         "customer_id": "wc_cust_mp_001",
-        "display_name": "企微用户",
-        "subject": "售后服务咨询",
+        "display_name": "企微用户-赵磊",
+        "subject": "商品规格与优惠咨询",
         "status": "open",
         "order_status": "paid",
         "order_amount": "159.00",
         "external_order_id": "WK_ORDER_001",  # wecom_user_001, paid
-        "message_content": "请问售后服务怎么办理？",
+        "message_content": "请问这款商品有优惠吗？",
+        "extra_messages": WC_MESSAGES,
     },
 ]
 

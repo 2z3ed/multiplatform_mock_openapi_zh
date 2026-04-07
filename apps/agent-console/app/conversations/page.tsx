@@ -15,6 +15,7 @@ interface Conversation {
 
 const platformLabels: Record<string, string> = {
   jd: "京东",
+  taobao: "淘宝",
   douyin_shop: "抖音",
   wecom_kf: "企微",
 };
