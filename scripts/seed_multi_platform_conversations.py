@@ -176,6 +176,109 @@ def fix_sequences(engine) -> None:
             pass  # Table may not exist yet
 
 
+MANAGED_CUSTOMER_IDS = (
+    "jd_cust_mp_001",
+    "tb_cust_mp_001",
+    "dy_cust_mp_001",
+    "wc_cust_mp_001",
+)
+
+
+def _cleanup_managed_samples(engine) -> None:
+    """Delete only the 4 managed demo samples in reverse FK order.
+
+    FK chain:
+      message.conversation_id -> conversation.id
+      conversation.customer_id -> customer.id
+      conversation_order_link.conversation_id -> conversation.id
+      conversation_order_link.order_id -> order_core.id
+      order_identity_mapping.order_id -> order_core.id
+      order_core.customer_id -> customer.id
+
+    Only touches rows reachable from MANAGED_CUSTOMER_IDS.
+    """
+    placeholders = ",".join(f":c{i}" for i in range(len(MANAGED_CUSTOMER_IDS)))
+    params = {f"c{i}": cid for i, cid in enumerate(MANAGED_CUSTOMER_IDS)}
+
+    with engine.begin() as conn:
+        # Resolve managed customer DB ids
+        rows = conn.execute(text(
+            f"SELECT id FROM customer WHERE platform_customer_id IN ({placeholders})"
+        ), params).fetchall()
+        customer_ids = [r[0] for r in rows]
+        if not customer_ids:
+            print("  No managed samples to clean up")
+            return
+
+        cust_placeholders = ",".join(f":cid{i}" for i in range(len(customer_ids)))
+        cust_params = {f"cid{i}": cid for i, cid in enumerate(customer_ids)}
+
+        # Resolve managed conversation ids
+        conv_rows = conn.execute(text(
+            f"SELECT id FROM conversation WHERE customer_id IN ({cust_placeholders})"
+        ), cust_params).fetchall()
+        conv_ids = [r[0] for r in conv_rows]
+        conv_placeholders = ",".join(f":cvid{i}" for i in range(len(conv_ids))) if conv_ids else "0"
+        conv_params = {f"cvid{i}": cid for i, cid in enumerate(conv_ids)} if conv_ids else {}
+
+        # Resolve managed order ids
+        order_rows = conn.execute(text(
+            f"SELECT id FROM order_core WHERE customer_id IN ({cust_placeholders})"
+        ), cust_params).fetchall()
+        order_ids = [r[0] for r in order_rows]
+        order_placeholders = ",".join(f":oid{i}" for i in range(len(order_ids))) if order_ids else "0"
+        order_params = {f"oid{i}": oid for i, oid in enumerate(order_ids)} if order_ids else {}
+
+        # 1. Messages via managed conversations
+        if conv_ids:
+            result = conn.execute(text(
+                f"DELETE FROM message WHERE conversation_id IN ({conv_placeholders})"
+            ), conv_params)
+            if result.rowcount:
+                print(f"  Deleted {result.rowcount} managed messages")
+
+        # 2. Conversation-order links via managed conversations
+        if conv_ids:
+            result = conn.execute(text(
+                f"DELETE FROM conversation_order_link WHERE conversation_id IN ({conv_placeholders})"
+            ), conv_params)
+            if result.rowcount:
+                print(f"  Deleted {result.rowcount} managed conversation_order_links")
+
+        # 3. Order identity mappings via managed orders
+        if order_ids:
+            result = conn.execute(text(
+                f"DELETE FROM order_identity_mapping WHERE order_id IN ({order_placeholders})"
+            ), order_params)
+            if result.rowcount:
+                print(f"  Deleted {result.rowcount} managed order_identity_mappings")
+
+        # 4. Conversations
+        if conv_ids:
+            result = conn.execute(text(
+                f"DELETE FROM conversation WHERE id IN ({conv_placeholders})"
+            ), conv_params)
+            if result.rowcount:
+                print(f"  Deleted {result.rowcount} managed conversations")
+
+        # 5. Order cores
+        if order_ids:
+            result = conn.execute(text(
+                f"DELETE FROM order_core WHERE id IN ({order_placeholders})"
+            ), order_params)
+            if result.rowcount:
+                print(f"  Deleted {result.rowcount} managed order_cores")
+
+        # 6. Customers
+        result = conn.execute(text(
+            f"DELETE FROM customer WHERE id IN ({cust_placeholders})"
+        ), cust_params)
+        if result.rowcount:
+            print(f"  Deleted {result.rowcount} managed customers")
+        else:
+            print("  No managed samples to clean up")
+
+
 def seed_platform(engine, sample: dict) -> None:
     """Seed one platform sample idempotently."""
     platform = sample["platform"]
@@ -390,9 +493,14 @@ def main():
     # Ensure all required tables exist
     ensure_tables(engine)
 
+    # Clean up managed demo samples so they can be reseeded with latest definitions
+    print("\n--- Cleaning up managed samples ---")
+    _cleanup_managed_samples(engine)
+
     # Fix any out-of-sync sequences (happens when data was inserted with explicit IDs)
     fix_sequences(engine)
 
+    # Reseed managed samples
     for sample in SAMPLES:
         seed_platform(engine, sample)
 
