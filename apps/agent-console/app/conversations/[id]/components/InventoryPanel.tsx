@@ -52,7 +52,9 @@ export default function InventoryPanel({ inventory, platform }: { inventory: Inv
     return (order[normalizeStockState(a.stock_state) as keyof typeof order] ?? 3) - (order[normalizeStockState(b.stock_state) as keyof typeof order] ?? 3);
   });
 
-  const displayItems = expanded ? sorted : sorted.slice(0, 5);
+  const displayItems = expanded ? sorted : sorted.slice(0, 3);
+
+  const hasAbnormal = outOfStock.length > 0 || lowStock.length > 0;
 
   return (
     <div className="bg-white rounded-lg shadow p-4">
@@ -92,7 +94,7 @@ export default function InventoryPanel({ inventory, platform }: { inventory: Inv
           </div>
         );
       })}
-      {items.length > 5 && (
+      {items.length > 3 && (
         <button
           onClick={() => setExpanded(!expanded)}
           className="w-full mt-2 text-xs text-blue-600 hover:text-blue-800 py-1"

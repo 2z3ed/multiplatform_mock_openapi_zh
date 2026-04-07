@@ -1,5 +1,6 @@
 from fastapi import APIRouter, HTTPException, Depends
 from sqlalchemy.orm import Session
+from sqlalchemy import text
 from pydantic import BaseModel
 from typing import Optional
 from datetime import datetime
@@ -175,9 +176,17 @@ async def _get_user_reply_with_retry(
     run_id = None
 
     if conv_pk:
-        conv = db.query(Conversation).filter(Conversation.id == conv_pk).first()
-        if conv and conv.extra_json:
-            run_id = conv.extra_json.get('platform_sim_run_id')
+        try:
+            result = db.execute(text("SELECT extra_json FROM conversation WHERE id = :id"), {"id": conv_pk})
+            row = result.fetchone()
+            if row and row[0]:
+                extra = row[0]
+                if isinstance(extra, str):
+                    import json
+                    extra = json.loads(extra)
+                run_id = extra.get('platform_sim_run_id') if extra else None
+        except Exception:
+            pass
 
     if run_id:
         try:
@@ -192,12 +201,19 @@ async def _get_user_reply_with_retry(
         return None
 
     if conv_pk:
-        conv = db.query(Conversation).filter(Conversation.id == conv_pk).first()
-        if conv:
-            if conv.extra_json is None:
-                conv.extra_json = {}
-            conv.extra_json['platform_sim_run_id'] = run_id
+        try:
+            import json
+            result = db.execute(text("SELECT extra_json FROM conversation WHERE id = :id"), {"id": conv_pk})
+            row = result.fetchone()
+            existing_extra = row[0] if row and row[0] else {}
+            if isinstance(existing_extra, str):
+                existing_extra = json.loads(existing_extra)
+            existing_extra['platform_sim_run_id'] = run_id
+            stmt = text("UPDATE conversation SET extra_json = :extra_json WHERE id = :id")
+            db.execute(stmt, {"extra_json": json.dumps(existing_extra), "id": conv_pk})
             db.commit()
+        except Exception:
+            pass
 
     try:
         user_reply = await _call_agent_message(run_id, conversation_id, agent_message)
